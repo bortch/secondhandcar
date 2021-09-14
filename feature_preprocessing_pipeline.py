@@ -144,4 +144,4 @@ if __name__ == "__main__":
     # scores = cross_val_score(model, X_train, y_train, cv=5)
     # print(scores.mean())
 
-    bsp.get_learning_curve(model, X_train, y_train, scoring="r2")
+    bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
