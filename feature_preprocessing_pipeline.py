@@ -17,8 +17,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 from sklearn.metrics import make_scorer, mean_squared_error, mean_absolute_error
 
-import bs_transformer as tsf
-# import bs_preprocess_lib as bsp
+import bs_lib.bs_transformer as tsf
+import bs_lib.bs_preprocess_lib as bsp
 
 from joblib import dump, load
 
@@ -139,9 +139,9 @@ if __name__ == "__main__":
         model.fit(X_train, y_train)
         dump(model, model_path)
 
-    evaluate(model,X_val,y_val)
+    #evaluate(model,X_val,y_val)
 
     # scores = cross_val_score(model, X_train, y_train, cv=5)
     # print(scores.mean())
 
-    # bsp.get_learning_curve(model, X_train, y_train, scoring="recall")
+    bsp.get_learning_curve(model, X_train, y_train, scoring="recall")
