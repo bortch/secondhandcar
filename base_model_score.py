@@ -22,20 +22,6 @@ import bs_lib.bs_preprocess_lib as bsp
 
 from joblib import dump, load
 
-# TODO:
-# Preprocessing for All
-# [X] 'price', 'mileage' as float
-# [X] 'year' as discrete 'year_category'
-# [X] 'mpg' as discrete 'mpg_category'
-# [X] 'mpg_category' through Ordinal Encoder
-# [X] 'engine_size' as discrete 'engine_category'
-# [X] 'engine_category' through  Ordinal Encoder
-# [X] 'tax' as discrete 'tax_category'
-# [ ] merge 'fuel_type'
-# [X] One Hot Encoding 'model' & 'brand'
-# PCA
-# [X] Standard Scaling
-
 
 def categorize(X):
     X = pd.DataFrame(X).copy()
@@ -44,50 +30,15 @@ def categorize(X):
     for c in columns:
         X[c] = X[c].astype('category')
         X[c] = X[c].cat.codes
-        # .astype('category').cat.codes.astype('category')
-        # print(f"Categorize: {c}\n\t{type(X[c])}")
-        # .astype('category')#.cat.codes
-        # .apply(lambda x: x.astype('category').cat.codes)
-    # print(X.info())
     return X
 
 
 def get_transformer(X):
 
-    # union = FeatureUnion([("MinMax", MinMaxScaler()),
-    #                   ("SS", StandardScaler()),
-    #                   ("Log", FunctionTransformer(np.log1p)])
-    # proc = ColumnTransformer([('trylots', union, ['Value_In_Dollars'])],
-    #                      remainder='passthrough')
-    # cut_and_encode = FeatureUnion([("category",)])
-    # df['animal_name'].cat.codes.astype('category')
-
     cat_columns = X.select_dtypes(include=['object']).columns.tolist()
-    # print(cat_columns)
-    #cat_columns = ['transmission', 'fuel_type']
-    #categorizer = FunctionTransformer(categorize)
-    #year_bins = np.arange(2009, 2022)
-    #mpg_bins = [0, 36, 47, 100]
-    #engine_bins = [-1, 2, 7]
-    #tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
-
-    # categorical_pipeline = make_pipeline(
-    #    categorizer, OneHotEncoder(handle_unknown='ignore'), verbose=True)
 
     transformer = make_column_transformer(
         (tsf.TypeConverter('float'), ['mileage']),
-        #    (tsf.Discretizer(target=['year'],
-        #                     kwargs={"bins": year_bins}), ['year']),
-        #    (tsf.Discretizer(target=['mpg'],
-        #     kwargs={"bins": mpg_bins, "labels": ["Low", "Medium", "High"]}), ['mpg']),
-        #    (tsf.Discretizer(target=['engine_size'],
-        #     kwargs={"bins": engine_bins, "labels": ['Small', 'Large']}), ['engine_size']),
-        #    (tsf.Discretizer(target=['tax'],
-        #                     kwargs={"bins": tax_bins}), ['tax']),
-        #    (OrdinalEncoder(), ['year_category', 'mpg_category',
-        #     'engine_size_category', 'tax_category']),
-        #    (categorizer, cat_columns),
-        #    (categorical_pipeline, ['model', 'brand']),
         (OneHotEncoder(handle_unknown='ignore'), cat_columns),
         (StandardScaler(), make_column_selector(dtype_include=np.number)),
         remainder='passthrough', verbose=2)
@@ -145,7 +96,7 @@ if __name__ == "__main__":
 
     evaluate(model, X_val, y_val)
 
-    #score: 2162.64987495974
+    # score: 2162.64987495974
 
     bsp.get_learning_curve(model, X_train, y_train,
                            scoring='neg_mean_squared_error')

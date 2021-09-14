@@ -4,9 +4,9 @@ import pandas as pd
 
 from sklearn.model_selection import train_test_split
 
-from sklearn.base import BaseEstimator, TransformerMixin
+#from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import FunctionTransformer
-from sklearn.pipeline import FeatureUnion, make_pipeline
+from sklearn.pipeline import make_pipeline
 from sklearn.compose import make_column_transformer
 from sklearn.compose import make_column_selector
 
@@ -15,7 +15,7 @@ from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 
 from sklearn.ensemble import RandomForestRegressor
 
-from sklearn.metrics import make_scorer, mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 import bs_lib.bs_transformer as tsf
 import bs_lib.bs_preprocess_lib as bsp
@@ -41,32 +41,18 @@ def categorize(X):
     X = pd.DataFrame(X).copy()
     columns = X.select_dtypes(include=['object']).columns.tolist()
     for c in columns:
+        print(f"\nCategorize: {c}\n")
         X[c] = X[c].astype('category')
         X[c] = X[c].cat.codes
-        # .astype('category').cat.codes.astype('category')
-        # print(f"Categorize: {c}\n\t{type(X[c])}")
-        # .astype('category')#.cat.codes
-        # .apply(lambda x: x.astype('category').cat.codes)
-        print(c)
     return X
 
 
 def discretize(X, kw_args):
-    print(X.columns)
+    print(f"\nDiscretize: {X.columns}\n")
     return X.apply(pd.cut,**kw_args)#.cat.codes)
 
 def get_transformer(X):
 
-    # union = FeatureUnion([("MinMax", MinMaxScaler()),
-    #                   ("SS", StandardScaler()),
-    #                   ("Log", FunctionTransformer(np.log1p)])
-    # proc = ColumnTransformer([('trylots', union, ['Value_In_Dollars'])],
-    #                      remainder='passthrough')
-    # cut_and_encode = FeatureUnion([("category",)])
-    # df['animal_name'].cat.codes.astype('category')
-
-    # cat_columns = X.select_dtypes(include=['object']).columns.tolist()
-    # print(cat_columns)
     cat_columns = ['transmission', 'fuel_type']
     categorizer = FunctionTransformer(categorize)
     year_bins = np.arange(2009, 2022)
@@ -117,7 +103,7 @@ def get_transformer(X):
 def evaluate(model, X_val, y_val):
     y_pred = model.predict(X_val)
     rmse = np.sqrt(mean_squared_error(np.exp(y_val), np.exp(y_pred)))
-    print(rmse)
+    print(f"RMSE: {rmse}")
 
 
 def fit_evaluate(model, X_train, y_train, X_val, y_val):
@@ -161,8 +147,6 @@ if __name__ == "__main__":
         dump(model, model_path)
 
     evaluate(model, X_val, y_val)
-
-    # scores = cross_val_score(model, X_train, y_train, cv=5)
-    # print(scores.mean())
+    # score: 908.2924800638677
 
     #bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
