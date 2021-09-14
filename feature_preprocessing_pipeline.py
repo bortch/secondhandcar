@@ -47,10 +47,13 @@ def categorize(X):
         # print(f"Categorize: {c}\n\t{type(X[c])}")
         # .astype('category')#.cat.codes
         # .apply(lambda x: x.astype('category').cat.codes)
-    print(X.info())
+        print(c)
     return X
 
 
+def discretize(X, kw_args):
+    print(X.columns)
+    return X.apply(pd.cut,**kw_args)#.cat.codes)
 
 def get_transformer(X):
 
@@ -74,32 +77,52 @@ def get_transformer(X):
     categorical_pipeline = make_pipeline(
         categorizer, OneHotEncoder(handle_unknown='ignore'), verbose=True)
 
+    year_pipeline = make_pipeline(
+        FunctionTransformer(
+            discretize,kw_args={"kw_args":{"bins": year_bins}}), 
+        OrdinalEncoder(), 
+        verbose=True)
+
+    mpg_pipeline = make_pipeline(
+        FunctionTransformer(
+            discretize,kw_args={"kw_args":{"bins": mpg_bins, "labels": ["Low", "Medium", "High"]}}), 
+        OrdinalEncoder(), 
+        verbose=True)
+
+    engine_pipeline = make_pipeline(
+        FunctionTransformer(
+            discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}), 
+        OrdinalEncoder(), 
+        verbose=True)
+
+    tax_pipeline = make_pipeline(
+        FunctionTransformer(
+            discretize,kw_args={"kw_args":{"bins": tax_bins}}), 
+        OrdinalEncoder(), 
+        verbose=True)
+
     transformer = make_column_transformer(
         (tsf.TypeConverter('float'), ['mileage']),
-        (tsf.Discretizer(target=['year'],
-                         kwargs={"bins": year_bins}), ['year']),
-        (tsf.Discretizer(target=['mpg'],
-         kwargs={"bins": mpg_bins, "labels": ["Low", "Medium", "High"]}), ['mpg']),
-        (tsf.Discretizer(target=['engine_size'],
-         kwargs={"bins": engine_bins, "labels": ['Small', 'Large']}), ['engine_size']),
-        (tsf.Discretizer(target=['tax'],
-                         kwargs={"bins": tax_bins}), ['tax']),
-        (OrdinalEncoder(), ['year_category', 'mpg_category',
-         'engine_size_category', 'tax_category']),
+        (year_pipeline, ['year']),
+        (mpg_pipeline, ['mpg']),
+        (engine_pipeline, ['engine_size']),
+        (tax_pipeline, ['tax']),
         (categorizer, cat_columns),
         (categorical_pipeline, ['model', 'brand']),
-        (StandardScaler(), make_column_selector(dtype_include='float64')),
+        (StandardScaler(), make_column_selector(dtype_include=np.number)),
         remainder='passthrough', verbose=2)
     return transformer
+
 
 def evaluate(model, X_val, y_val):
     y_pred = model.predict(X_val)
     rmse = np.sqrt(mean_squared_error(np.exp(y_val), np.exp(y_pred)))
     print(rmse)
 
+
 def fit_evaluate(model, X_train, y_train, X_val, y_val):
     model.fit(X_train, y_train)
-    evaluate(model,X_val,y_val)
+    evaluate(model, X_val, y_val)
 
 
 if __name__ == "__main__":
@@ -111,9 +134,7 @@ if __name__ == "__main__":
     data = pd.read_csv(join(dataset_directory_path, dataset_file), index_col=0)
     # training preprocessing
     X = data.drop(labels=['price'], axis=1)
-    # add feature for categorisation
-    X[['year_category', 'mpg_category', 'engine_size_category', 'tax_category']] = None
-    
+
     # Target + Normalisation
     y = np.log(data['price'])
 
@@ -126,7 +147,7 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
     # If model not already exists:
-    model_filename = '_temp_model_3.joblib'
+    model_filename = '_temp_model_4.joblib'
     model_path = join(model_directory_path, model_filename)
     if isfile(model_path):
         model = load(model_path)
@@ -139,9 +160,9 @@ if __name__ == "__main__":
         model.fit(X_train, y_train)
         dump(model, model_path)
 
-    #evaluate(model,X_val,y_val)
+    evaluate(model, X_val, y_val)
 
     # scores = cross_val_score(model, X_train, y_train, cv=5)
     # print(scores.mean())
 
-    bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
+    #bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
