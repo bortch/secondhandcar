@@ -155,7 +155,7 @@ if __name__ == "__main__":
     else:
         # pipeline: predict preprocessing
         model = make_pipeline(transformer,
-                              RandomForestRegressor(n_estimators=200, n_jobs=2),
+                              RandomForestRegressor(n_estimators=200, n_jobs=-1),
                               verbose=True)
         model.fit(X_train, y_train)
         dump(model, model_path)
