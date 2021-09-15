@@ -43,14 +43,14 @@ def categorize(X):
     X = pd.DataFrame(X).copy()
     columns = X.select_dtypes(include=['object']).columns.tolist()
     for c in columns:
-        print(f"\nCategorize: {c}\n")
+        #print(f"\nCategorize: {c}\n")
         X[c] = X[c].astype('category')
         X[c] = X[c].cat.codes
     return X
 
 
 def discretize(X, kw_args):
-    print(f"\nDiscretize: {X.columns.to_list()}\n")
+    #print(f"\nDiscretize: {X.columns.to_list()}\n")
     return X.apply(pd.cut, **kw_args)  # .cat.codes)
 
 
@@ -64,32 +64,32 @@ def get_transformer(X):
     tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
 
     categorical_pipeline = make_pipeline(
-        categorizer, OneHotEncoder(handle_unknown='ignore'), verbose=True)
+        categorizer, OneHotEncoder(handle_unknown='ignore'), verbose=False)
 
     year_pipeline = make_pipeline(
         FunctionTransformer(
             discretize, kw_args={"kw_args": {"bins": year_bins}}),
         OrdinalEncoder(),
-        verbose=True)
+        verbose=False)
 
     mpg_pipeline = make_pipeline(
         FunctionTransformer(
             discretize, kw_args={"kw_args": {"bins": mpg_bins, "labels": ["Low", "Medium", "High"]}}),
         OrdinalEncoder(),
-        verbose=True)
+        verbose=False)
 
     strategies = ['uniform', 'quantile', 'kmeans']
     encoding = ['onehot', 'ordinal']
 
     engine_pipeline = make_pipeline(
         KBinsDiscretizer(n_bins=4, encode=encoding[1], strategy='kmeans'),
-        verbose=True)
+        verbose=False)
 
     tax_pipeline = make_pipeline(
         FunctionTransformer(
             discretize, kw_args={"kw_args": {"bins": tax_bins}}),
         OrdinalEncoder(),
-        verbose=True)
+        verbose=False)
 
     transformer = make_column_transformer(
         (tsf.TypeConverter('float'), ['mileage']),
@@ -102,14 +102,14 @@ def get_transformer(X):
         ('drop', ['model']),
         (categorical_pipeline, ['brand']),
         (StandardScaler(), make_column_selector(dtype_include=np.number)),
-        remainder='passthrough', verbose=2)
+        remainder='passthrough', verbose=0)
     return transformer
 
 
 def evaluate(model, X_val, y_val):
     y_pred = model.predict(X_val)
     rmse = np.sqrt(mean_squared_error(np.exp(y_val), np.exp(y_pred)))
-    print(f"RMSE: {rmse}")
+    #print(f"RMSE: {rmse}")
 
 
 def fit_evaluate(model, X_train, y_train, X_val, y_val):
@@ -120,10 +120,10 @@ def fit_evaluate(model, X_train, y_train, X_val, y_val):
 def get_best_estimator(model, param_grid, X_train, y_train, scoring):
     grid = GridSearchCV(model, param_grid=param_grid,
                         cv=5, scoring=scoring,
-                        verbose=2, n_jobs=2
+                        verbose=0, n_jobs=2
                         )
     grid.fit(X_train, np.log(y_train))
-    print(grid.best_params_)
+    #print(grid.best_params_)
     return grid.best_estimator_
 
 
@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
     # testing
     # X_ = pd.DataFrame(transformer.fit_transform(X).toarray())
-    # print(X_.info())
+    # #print(X_.info())
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
@@ -153,13 +153,13 @@ if __name__ == "__main__":
     # model_path = join(model_directory_path, model_filename)
     # if isfile(model_path):
     #     model = load(model_path)
-    #     print(model)
+    #     #print(model)
     # else:
     #     # pipeline: predict preprocessing
     #     model = make_pipeline(transformer,
     #                           RandomForestRegressor(
     #                               n_estimators=200, n_jobs=-1),
-    #                           verbose=True)
+    #                           verbose=False)
     #     model.fit(X_train, y_train)
     #     dump(model, model_path)
 
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     # Redefine Scoring
     model = make_pipeline(transformer,
                           RandomForestRegressor(n_estimators=200, n_jobs=-1),
-                          verbose=True)
+                          verbose=False)
     mse = make_scorer(mean_squared_error, greater_is_better=False)
     model = get_best_estimator(
         model, param_grid, X_train, y_train, scoring=mse)
