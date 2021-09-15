@@ -98,7 +98,9 @@ def get_transformer(X):
         (KBinsDiscretizer(n_bins=6,
          encode=encoding[1], strategy='kmeans'), ['mpg']),
         (engine_pipeline, ['engine_size']),
-        (tax_pipeline, ['tax']),
+        #(tax_pipeline, ['tax']),
+        (KBinsDiscretizer(n_bins=9,
+         encode=encoding[1], strategy='kmeans'), ['tax']),
         (categorizer, cat_columns),
         #(categorical_pipeline, ['model', 'brand']),
         ('drop', ['model']),
@@ -191,5 +193,7 @@ if __name__ == "__main__":
     # drop [Model], Engine_size {bins:3,ordinal}: RMSE: 775.483119993178
     # drop [Model], Engine_size {bins:4,ordinal}: RMSE: 774.9931127333747
     # drop [Model], Engine_size {bins:4,onehot}: RMSE: 774.7801325578779
+    # drop [Model], Engine_size {bins:4,onehot},mpg{bins:6,onehot}: RMSE: 775.1856423450347
+
 
 #bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
