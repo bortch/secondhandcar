@@ -119,6 +119,7 @@ def fit_evaluate(model, X_train, y_train, X_val, y_val):
     model.fit(X_train, y_train)
     evaluate(model, X_val, y_val)
 
+
 def get_best_estimator(model, param_grid, X_train, y_train, scoring):
     grid = GridSearchCV(model, param_grid=param_grid,
                         cv=5, scoring=scoring,
@@ -127,7 +128,6 @@ def get_best_estimator(model, param_grid, X_train, y_train, scoring):
     grid.fit(X_train, np.log(y_train))
     print(grid.best_params_)
     return grid.best_estimator_
-
 
 
 if __name__ == "__main__":
@@ -152,29 +152,33 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
     # If model not already exists:
-    model_filename = '_temp_model_model-0_engine-4-ordinal.joblib'
-    model_path = join(model_directory_path, model_filename)
-    if isfile(model_path):
-        model = load(model_path)
-        print(model)
-    else:
-        # pipeline: predict preprocessing
-        model = make_pipeline(transformer,
-                              RandomForestRegressor(
-                                  n_estimators=200, n_jobs=-1),
-                              verbose=True)
-        model.fit(X_train, y_train)
-        dump(model, model_path)
+    # model_filename = '_temp_model_model-0_engine-4-ordinal.joblib'
+    # model_path = join(model_directory_path, model_filename)
+    # if isfile(model_path):
+    #     model = load(model_path)
+    #     print(model)
+    # else:
+    #     # pipeline: predict preprocessing
+    #     model = make_pipeline(transformer,
+    #                           RandomForestRegressor(
+    #                               n_estimators=200, n_jobs=-1),
+    #                           verbose=True)
+    #     model.fit(X_train, y_train)
+    #     dump(model, model_path)
 
     param_grid = {'randomforestregressor__max_depth': np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
                   'randomforestregressor__min_samples_split': np.arange(50, 70, 5)
                   }
 
     # Redefine Scoring
+    model = make_pipeline(transformer,
+                          RandomForestRegressor(
+                              n_estimators=200, n_jobs=-1),
+                          verbose=True)
     mse = make_scorer(mean_squared_error, greater_is_better=False)
     model = get_best_estimator(
-         model, param_grid, X_train, y_train, scoring=mse)
-    
+        model, param_grid, X_train, y_train, scoring=mse)
+
     evaluate(model, X_val, y_val)
     # RMSE: 908.2924800638677
     # drop [Model] : RMSE: 775.1466069992655
