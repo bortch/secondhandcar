@@ -79,9 +79,10 @@ def get_transformer(X):
         verbose=True)
 
     strategies = ['uniform', 'quantile', 'kmeans']
+    encoding = ['onehot','ordinal']
 
     engine_pipeline = make_pipeline(
-        KBinsDiscretizer(n_bins=4, encode='onehot', strategy='kmeans'),
+        KBinsDiscretizer(n_bins=4, encode=encoding[1], strategy='kmeans'),
         # FunctionTransformer(
         #     discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}), 
         #OrdinalEncoder(), 
@@ -141,7 +142,7 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
     # If model not already exists:
-    model_filename = '_temp_model_model-0_engine-4-OneHot.joblib'
+    model_filename = '_temp_model_model-0_engine-4-ordinal.joblib'
     model_path = join(model_directory_path, model_filename)
     if isfile(model_path):
         model = load(model_path)
@@ -158,8 +159,10 @@ if __name__ == "__main__":
     # RMSE: 908.2924800638677
     # drop Model : RMSE: 775.1466069992655
     # drop Brand : RMSE: 872.0164550638308
-    # drop Model Engine_size 6 bin: RMSE: 774.8210885246958
-    # drop Model Engine_size 3 bin: RMSE: 775.483119993178
+    # drop Model Engine_size 6 bins: RMSE: 774.8210885246958
+    # drop Model Engine_size 3 bins: RMSE: 775.483119993178
+    # drop Model Engine_size 4 bins: RMSE: 774.7801325578779
+
 
 
 
