@@ -81,7 +81,7 @@ def get_transformer(X):
     strategies = ['uniform', 'quantile', 'kmeans']
 
     engine_pipeline = make_pipeline(
-        KBinsDiscretizer(n_bins=6, encode='ordinal', strategy='kmeans'),
+        KBinsDiscretizer(n_bins=3, encode='ordinal', strategy='kmeans'),
         # FunctionTransformer(
         #     discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}), 
         #OrdinalEncoder(), 
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
     # If model not already exists:
-    model_filename = '_temp_model_drop_model.joblib'
+    model_filename = '_temp_model_model0_engine3.joblib'
     model_path = join(model_directory_path, model_filename)
     if isfile(model_path):
         model = load(model_path)
@@ -158,6 +158,7 @@ if __name__ == "__main__":
     # RMSE: 908.2924800638677
     # drop Model : RMSE: 775.1466069992655
     # drop Brand : RMSE: 872.0164550638308
+    # drop Model Engine_size 6 bin: RMSE: 774.8210885246958
 
 
 
