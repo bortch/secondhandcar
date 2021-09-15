@@ -94,7 +94,9 @@ def get_transformer(X):
     transformer = make_column_transformer(
         (tsf.TypeConverter('float'), ['mileage']),
         (year_pipeline, ['year']),
-        (mpg_pipeline, ['mpg']),
+        #(mpg_pipeline, ['mpg']),
+        (KBinsDiscretizer(n_bins=6,
+         encode=encoding[1], strategy='kmeans'), ['mpg'])
         (engine_pipeline, ['engine_size']),
         (tax_pipeline, ['tax']),
         (categorizer, cat_columns),
@@ -120,7 +122,7 @@ def fit_evaluate(model, X_train, y_train, X_val, y_val):
 def get_best_estimator(model, param_grid, X_train, y_train, scoring):
     grid = GridSearchCV(model, param_grid=param_grid,
                         cv=5, scoring=scoring,
-                        verbose=0, n_jobs=2
+                        verbose=1, n_jobs=2
                         )
     grid.fit(X_train, np.log(y_train))
     print(grid.best_params_)
@@ -148,6 +150,10 @@ if __name__ == "__main__":
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
+    model = make_pipeline(transformer,
+                          RandomForestRegressor(
+                              n_estimators=200, n_jobs=-1),
+                          verbose=True)
     # If model not already exists:
     # model_filename = '_temp_model_model-0_engine-4-ordinal.joblib'
     # model_path = join(model_directory_path, model_filename)
@@ -163,17 +169,17 @@ if __name__ == "__main__":
     #     model.fit(X_train, y_train)
     #     dump(model, model_path)
 
-    param_grid = {'randomforestregressor__max_depth': [40, 50, 70, 100],#np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
-                  'randomforestregressor__min_samples_split': np.arange(2, 5, 1)
-                  }
+    # param_grid = {'randomforestregressor__max_depth': [40, 50, 70, 100],  # np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
+    #               'randomforestregressor__min_samples_split': np.arange(2, 5, 1)
+    #               }
 
     # Redefine Scoring
-    model = make_pipeline(transformer,
-                          RandomForestRegressor(n_estimators=200, n_jobs=-1),
-                          verbose=False)
-    mse = make_scorer(mean_squared_error, greater_is_better=False)
-    model = get_best_estimator(
-        model, param_grid, X_train, y_train, scoring=mse)
+    # model = make_pipeline(transformer,
+    #                       RandomForestRegressor(n_estimators=200, n_jobs=-1),
+    #                       verbose=False)
+    # mse = make_scorer(mean_squared_error, greater_is_better=False)
+    # model = get_best_estimator(
+    #     model, param_grid, X_train, y_train, scoring=mse)
 
     evaluate(model, X_val, y_val)
     # RMSE: 908.2924800638677
@@ -183,4 +189,5 @@ if __name__ == "__main__":
     # drop [Model], Engine_size {bins:3,ordinal}: RMSE: 775.483119993178
     # drop [Model], Engine_size {bins:4,ordinal}: RMSE: 774.9931127333747
     # drop [Model], Engine_size {bins:4,onehot}: RMSE: 774.7801325578779
+
 #bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
