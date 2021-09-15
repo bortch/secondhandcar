@@ -81,7 +81,7 @@ def get_transformer(X):
     strategies = ['uniform', 'quantile', 'kmeans']
 
     engine_pipeline = make_pipeline(
-        KBinsDiscretizer(n_bins=10, encode='ordinal', strategy=strategies[3]),
+        KBinsDiscretizer(n_bins=10, encode='ordinal', strategy='kmeans'),
         # FunctionTransformer(
         #     discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}), 
         #OrdinalEncoder(), 
