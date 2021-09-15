@@ -163,7 +163,7 @@ if __name__ == "__main__":
     #     model.fit(X_train, y_train)
     #     dump(model, model_path)
 
-    param_grid = {'randomforestregressor__max_depth': [5, 10, 15, 20],#np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
+    param_grid = {'randomforestregressor__max_depth': [10, 15, 20,30],#np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
                   'randomforestregressor__min_samples_split': np.arange(2, 50, 10)
                   }
 
