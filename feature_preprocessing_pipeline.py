@@ -83,9 +83,6 @@ def get_transformer(X):
 
     engine_pipeline = make_pipeline(
         KBinsDiscretizer(n_bins=4, encode=encoding[1], strategy='kmeans'),
-        # FunctionTransformer(
-        #     discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}),
-        # OrdinalEncoder(),
         verbose=True)
 
     tax_pipeline = make_pipeline(
@@ -166,14 +163,13 @@ if __name__ == "__main__":
     #     model.fit(X_train, y_train)
     #     dump(model, model_path)
 
-    param_grid = {'randomforestregressor__max_depth': np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
-                  'randomforestregressor__min_samples_split': np.arange(50, 70, 5)
+    param_grid = {'randomforestregressor__max_depth': [5, 10, 15, 20],#np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
+                  'randomforestregressor__min_samples_split': np.arange(2, 50, 10)
                   }
 
     # Redefine Scoring
     model = make_pipeline(transformer,
-                          RandomForestRegressor(
-                              n_estimators=200, n_jobs=-1),
+                          RandomForestRegressor(n_estimators=200, n_jobs=-1),
                           verbose=True)
     mse = make_scorer(mean_squared_error, greater_is_better=False)
     model = get_best_estimator(
