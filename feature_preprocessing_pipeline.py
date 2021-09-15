@@ -81,7 +81,7 @@ def get_transformer(X):
     strategies = ['uniform', 'quantile', 'kmeans']
 
     engine_pipeline = make_pipeline(
-        KBinsDiscretizer(n_bins=11, encode='ordinal', strategy='kmeans'),
+        KBinsDiscretizer(n_bins=6, encode='ordinal', strategy='kmeans'),
         # FunctionTransformer(
         #     discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}), 
         #OrdinalEncoder(), 
@@ -101,8 +101,8 @@ def get_transformer(X):
         (tax_pipeline, ['tax']),
         (categorizer, cat_columns),
         #(categorical_pipeline, ['model', 'brand']),
-        ('drop',['brand']),
-        (categorical_pipeline, [ 'model']),
+        ('drop',['model']),
+        (categorical_pipeline, ['brand']),
         (StandardScaler(), make_column_selector(dtype_include=np.number)),
         remainder='passthrough', verbose=2)
     return transformer
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
     # If model not already exists:
-    model_filename = '_temp_model_drop_brand.joblib'
+    model_filename = '_temp_model_drop_model.joblib'
     model_path = join(model_directory_path, model_filename)
     if isfile(model_path):
         model = load(model_path)
@@ -157,7 +157,8 @@ if __name__ == "__main__":
     evaluate(model, X_val, y_val)
     # RMSE: 908.2924800638677
     # drop Model : RMSE: 775.1466069992655
-    # drop Brand : 
+    # drop Brand : RMSE: 872.0164550638308
+
 
 
 
