@@ -141,7 +141,7 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
     # If model not already exists:
-    model_filename = '_temp_model_5.joblib'
+    model_filename = '_temp_model_6.joblib'
     model_path = join(model_directory_path, model_filename)
     if isfile(model_path):
         model = load(model_path)
