@@ -154,6 +154,7 @@ if __name__ == "__main__":
                           RandomForestRegressor(
                               n_estimators=200, n_jobs=-1),
                           verbose=True)
+    fit_evaluate(model, X_val, y_val)
     # If model not already exists:
     # model_filename = '_temp_model_model-0_engine-4-ordinal.joblib'
     # model_path = join(model_directory_path, model_filename)
@@ -181,7 +182,7 @@ if __name__ == "__main__":
     # model = get_best_estimator(
     #     model, param_grid, X_train, y_train, scoring=mse)
 
-    evaluate(model, X_val, y_val)
+    # evaluate(model, X_val, y_val)
     # RMSE: 908.2924800638677
     # drop [Model] : RMSE: 775.1466069992655
     # drop [Brand] : RMSE: 872.0164550638308
