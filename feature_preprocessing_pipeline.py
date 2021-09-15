@@ -2,7 +2,7 @@ from os.path import join, isfile
 import numpy as np
 import pandas as pd
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 
 #from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import FunctionTransformer
@@ -17,7 +17,7 @@ from sklearn.preprocessing import KBinsDiscretizer
 
 from sklearn.ensemble import RandomForestRegressor
 
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import make_scorer, mean_squared_error, mean_absolute_error
 
 import bs_lib.bs_transformer as tsf
 import bs_lib.bs_preprocess_lib as bsp
@@ -51,7 +51,8 @@ def categorize(X):
 
 def discretize(X, kw_args):
     print(f"\nDiscretize: {X.columns.to_list()}\n")
-    return X.apply(pd.cut,**kw_args)#.cat.codes)
+    return X.apply(pd.cut, **kw_args)  # .cat.codes)
+
 
 def get_transformer(X):
 
@@ -62,36 +63,35 @@ def get_transformer(X):
     engine_bins = [-1, 2, 7]
     tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
 
-
     categorical_pipeline = make_pipeline(
         categorizer, OneHotEncoder(handle_unknown='ignore'), verbose=True)
 
     year_pipeline = make_pipeline(
         FunctionTransformer(
-            discretize,kw_args={"kw_args":{"bins": year_bins}}), 
-        OrdinalEncoder(), 
+            discretize, kw_args={"kw_args": {"bins": year_bins}}),
+        OrdinalEncoder(),
         verbose=True)
 
     mpg_pipeline = make_pipeline(
         FunctionTransformer(
-            discretize,kw_args={"kw_args":{"bins": mpg_bins, "labels": ["Low", "Medium", "High"]}}), 
-        OrdinalEncoder(), 
+            discretize, kw_args={"kw_args": {"bins": mpg_bins, "labels": ["Low", "Medium", "High"]}}),
+        OrdinalEncoder(),
         verbose=True)
 
     strategies = ['uniform', 'quantile', 'kmeans']
-    encoding = ['onehot','ordinal']
+    encoding = ['onehot', 'ordinal']
 
     engine_pipeline = make_pipeline(
         KBinsDiscretizer(n_bins=4, encode=encoding[1], strategy='kmeans'),
         # FunctionTransformer(
-        #     discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}), 
-        #OrdinalEncoder(), 
+        #     discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}),
+        # OrdinalEncoder(),
         verbose=True)
 
     tax_pipeline = make_pipeline(
         FunctionTransformer(
-            discretize,kw_args={"kw_args":{"bins": tax_bins}}), 
-        OrdinalEncoder(), 
+            discretize, kw_args={"kw_args": {"bins": tax_bins}}),
+        OrdinalEncoder(),
         verbose=True)
 
     transformer = make_column_transformer(
@@ -102,7 +102,7 @@ def get_transformer(X):
         (tax_pipeline, ['tax']),
         (categorizer, cat_columns),
         #(categorical_pipeline, ['model', 'brand']),
-        ('drop',['model']),
+        ('drop', ['model']),
         (categorical_pipeline, ['brand']),
         (StandardScaler(), make_column_selector(dtype_include=np.number)),
         remainder='passthrough', verbose=2)
@@ -118,6 +118,16 @@ def evaluate(model, X_val, y_val):
 def fit_evaluate(model, X_train, y_train, X_val, y_val):
     model.fit(X_train, y_train)
     evaluate(model, X_val, y_val)
+
+def get_best_estimator(model, param_grid, X_train, y_train, scoring):
+    grid = GridSearchCV(model, param_grid=param_grid,
+                        cv=5, scoring=scoring,
+                        verbose=2, n_jobs=2
+                        )
+    grid.fit(X_train, np.log(y_train))
+    print(grid.best_params_)
+    return grid.best_estimator_
+
 
 
 if __name__ == "__main__":
@@ -150,22 +160,27 @@ if __name__ == "__main__":
     else:
         # pipeline: predict preprocessing
         model = make_pipeline(transformer,
-                              RandomForestRegressor(n_estimators=200, n_jobs=-1),
+                              RandomForestRegressor(
+                                  n_estimators=200, n_jobs=-1),
                               verbose=True)
         model.fit(X_train, y_train)
         dump(model, model_path)
 
+    param_grid = {'randomforestregressor__max_depth': np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
+                  'randomforestregressor__min_samples_split': np.arange(50, 70, 5)
+                  }
+
+    # Redefine Scoring
+    mse = make_scorer(mean_squared_error, greater_is_better=False)
+    model = get_best_estimator(
+         model, param_grid, X_train, y_train, scoring=mse)
+    
     evaluate(model, X_val, y_val)
     # RMSE: 908.2924800638677
-    # drop Model : RMSE: 775.1466069992655
-    # drop Brand : RMSE: 872.0164550638308
-    # drop Model Engine_size 6 bins: RMSE: 774.8210885246958
-    # drop Model Engine_size 3 bins: RMSE: 775.483119993178
-    # drop Model Engine_size 4 bins: RMSE: 774.7801325578779
-
-
-
-
-
-
-    #bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
+    # drop [Model] : RMSE: 775.1466069992655
+    # drop [Brand] : RMSE: 872.0164550638308
+    # drop [Model], Engine_size {bins:6,ordinal}: RMSE: 774.8210885246958
+    # drop [Model], Engine_size {bins:3,ordinal}: RMSE: 775.483119993178
+    # drop [Model], Engine_size {bins:4,ordinal}: RMSE: 774.9931127333747
+    # drop [Model], Engine_size {bins:4,onehot}: RMSE: 774.7801325578779
+#bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
