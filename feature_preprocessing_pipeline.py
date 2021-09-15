@@ -101,8 +101,8 @@ def get_transformer(X):
         (tax_pipeline, ['tax']),
         (categorizer, cat_columns),
         #(categorical_pipeline, ['model', 'brand']),
-        ('drop',['model']),
-        (categorical_pipeline, [ 'brand']),
+        ('drop',['brand']),
+        (categorical_pipeline, [ 'model']),
         (StandardScaler(), make_column_selector(dtype_include=np.number)),
         remainder='passthrough', verbose=2)
     return transformer
@@ -156,6 +156,9 @@ if __name__ == "__main__":
 
     evaluate(model, X_val, y_val)
     # RMSE: 908.2924800638677
+    # drop Model : RMSE: 775.1466069992655
+    # drop Brand : 
+
 
 
     #bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
