@@ -96,7 +96,7 @@ def get_transformer(X):
         (year_pipeline, ['year']),
         #(mpg_pipeline, ['mpg']),
         (KBinsDiscretizer(n_bins=6,
-         encode=encoding[1], strategy='kmeans'), ['mpg'])
+         encode=encoding[1], strategy='kmeans'), ['mpg']),
         (engine_pipeline, ['engine_size']),
         (tax_pipeline, ['tax']),
         (categorizer, cat_columns),
