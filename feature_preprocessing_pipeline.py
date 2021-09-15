@@ -13,6 +13,8 @@ from sklearn.compose import make_column_selector
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 
+from sklearn.preprocessing import KBinsDiscretizer
+
 from sklearn.ensemble import RandomForestRegressor
 
 from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -60,6 +62,7 @@ def get_transformer(X):
     engine_bins = [-1, 2, 7]
     tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
 
+
     categorical_pipeline = make_pipeline(
         categorizer, OneHotEncoder(handle_unknown='ignore'), verbose=True)
 
@@ -75,10 +78,13 @@ def get_transformer(X):
         OrdinalEncoder(), 
         verbose=True)
 
+    strategies = ['uniform', 'quantile', 'kmeans']
+
     engine_pipeline = make_pipeline(
-        FunctionTransformer(
-            discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}), 
-        OrdinalEncoder(), 
+        KBinsDiscretizer(n_bins=10, encode='ordinal', strategy=strategies[3]),
+        # FunctionTransformer(
+        #     discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}), 
+        #OrdinalEncoder(), 
         verbose=True)
 
     tax_pipeline = make_pipeline(
@@ -133,7 +139,7 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
     # If model not already exists:
-    model_filename = '_temp_model_4.joblib'
+    model_filename = '_temp_model_5.joblib'
     model_path = join(model_directory_path, model_filename)
     if isfile(model_path):
         model = load(model_path)
