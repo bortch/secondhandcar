@@ -154,7 +154,8 @@ if __name__ == "__main__":
                           RandomForestRegressor(
                               n_estimators=200, n_jobs=-1),
                           verbose=True)
-    fit_evaluate(model, X_val, y_val)
+    model.fit(X_train, y_train)
+    evaluate(model, X_val, y_val)
     # If model not already exists:
     # model_filename = '_temp_model_model-0_engine-4-ordinal.joblib'
     # model_path = join(model_directory_path, model_filename)
