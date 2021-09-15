@@ -109,7 +109,7 @@ def get_transformer(X):
 def evaluate(model, X_val, y_val):
     y_pred = model.predict(X_val)
     rmse = np.sqrt(mean_squared_error(np.exp(y_val), np.exp(y_pred)))
-    #print(f"RMSE: {rmse}")
+    print(f"RMSE: {rmse}")
 
 
 def fit_evaluate(model, X_train, y_train, X_val, y_val):
@@ -123,7 +123,7 @@ def get_best_estimator(model, param_grid, X_train, y_train, scoring):
                         verbose=0, n_jobs=2
                         )
     grid.fit(X_train, np.log(y_train))
-    #print(grid.best_params_)
+    print(grid.best_params_)
     return grid.best_estimator_
 
 
