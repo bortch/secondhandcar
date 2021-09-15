@@ -50,7 +50,7 @@ def categorize(X):
 
 
 def discretize(X, kw_args):
-    print(f"\nDiscretize: {X.columns}\n")
+    print(f"\nDiscretize: {X.columns.to_list()}\n")
     return X.apply(pd.cut,**kw_args)#.cat.codes)
 
 def get_transformer(X):
@@ -81,7 +81,7 @@ def get_transformer(X):
     strategies = ['uniform', 'quantile', 'kmeans']
 
     engine_pipeline = make_pipeline(
-        KBinsDiscretizer(n_bins=10, encode='ordinal', strategy='kmeans'),
+        KBinsDiscretizer(n_bins=11, encode='ordinal', strategy='kmeans'),
         # FunctionTransformer(
         #     discretize,kw_args={"kw_args":{"bins": engine_bins, "labels": ['Small', 'Large']}}), 
         #OrdinalEncoder(), 
@@ -100,7 +100,9 @@ def get_transformer(X):
         (engine_pipeline, ['engine_size']),
         (tax_pipeline, ['tax']),
         (categorizer, cat_columns),
-        (categorical_pipeline, ['model', 'brand']),
+        #(categorical_pipeline, ['model', 'brand']),
+        ('drop',['model']),
+        (categorical_pipeline, [ 'brand']),
         (StandardScaler(), make_column_selector(dtype_include=np.number)),
         remainder='passthrough', verbose=2)
     return transformer
@@ -153,6 +155,7 @@ if __name__ == "__main__":
         dump(model, model_path)
 
     evaluate(model, X_val, y_val)
-    # score: 908.2924800638677
+    # RMSE: 908.2924800638677
+
 
     #bsp.get_learning_curve(model, X_train, y_train, scoring="r2",show=False,savefig=True)
