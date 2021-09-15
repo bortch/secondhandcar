@@ -164,7 +164,7 @@ if __name__ == "__main__":
     #     dump(model, model_path)
 
     param_grid = {'randomforestregressor__max_depth': [40, 50, 70, 100],#np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
-                  'randomforestregressor__min_samples_split': np.arange(1, 4, 1)
+                  'randomforestregressor__min_samples_split': np.arange(2, 5, 1)
                   }
 
     # Redefine Scoring
