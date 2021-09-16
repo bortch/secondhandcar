@@ -97,7 +97,7 @@ def get_transformer(X):
         StandardScaler())
     
     poly_transformer =make_pipeline(
-        PolynomialFeatures(degree=3,interaction_only=True,include_bias=False),
+        PolynomialFeatures(degree=2,interaction_only=True,include_bias=False),
         StandardScaler()
     )
 
@@ -152,11 +152,11 @@ if __name__ == "__main__":
     # training preprocessing
     X = data.drop(labels=['price'], axis=1)
 
-    X['mileage_per_year'] = X['mileage']/(1+X['year'].max()-X['year'])
-    X['galon_per_year'] = X['mpg']/X['mileage_per_year']
-    X['tax_per_mileage'] = X['tax']/X['mileage']
-    X['litre_per_mileage'] = X['engine_size']/X['mileage']
-    X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
+    # X['mileage_per_year'] = X['mileage']/(1+X['year'].max()-X['year'])
+    # X['galon_per_year'] = X['mpg']/X['mileage_per_year']
+    # X['tax_per_mileage'] = X['tax']/X['mileage']
+    # X['litre_per_mileage'] = X['engine_size']/X['mileage']
+    # X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
     # Target + Normalisation
     y = np.log(data['price'])
 
@@ -220,6 +220,8 @@ if __name__ == "__main__":
     # add litre_per_mileage: RMSE: 710.4270104501544
     # add litre_per_galon: RMSE: 708.0328930831951
     # RMSE: 707.0531841576233
+    # polynomiale feature RMSE: 678.1993773405426
+
 
     #bsp.get_learning_curve(model, X_train, y_train, scoring='neg_mean_squared_error',show=False,savefig=True)
     #bsp.plot_learning_curve(model, 'test', X_train, y_train, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5))
