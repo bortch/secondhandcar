@@ -148,28 +148,29 @@ if __name__ == "__main__":
 
     get_features = FunctionTransformer(extract_features, validate=False)
 
-    model = make_pipeline(get_features, 
-                          transformer,
-                          RandomForestRegressor(
-                              n_estimators=200, n_jobs=-1),
-                          verbose=True)
-    model.fit(X_train, y_train)
-    evaluate(model, X_val, y_val)
+    # model = make_pipeline(get_features, 
+    #                       transformer,
+    #                       RandomForestRegressor(
+    #                           n_estimators=200, n_jobs=-1),
+    #                       verbose=True)
+    # model.fit(X_train, y_train)
+    # evaluate(model, X_val, y_val)
 
-    # if model not already exists:
-    # model_filename = 'model_500e_poly3.joblib'
-    # model_path = join(model_directory_path, model_filename)
-    # if isfile(model_path):
-    #     model = load(model_path)
-    #     # print(model)
-    # else:
-    #     # pipeline: predict preprocessing
-    #     model = make_pipeline(transformer,
-    #                           RandomForestRegressor(
-    #                               n_estimators=500, n_jobs=-1),
-    #                           verbose=True)
-    #     model.fit(X_train, y_train)
-    #     dump(model, model_path)
+    #if model not already exists:
+    model_name = 'model_677'
+    model_filename = f'{model_name}.joblib'
+    model_path = join(model_directory_path, model_filename)
+    if isfile(model_path):
+        model = load(model_path)
+        # print(model)
+    else:
+        # pipeline: predict preprocessing
+        model = make_pipeline(transformer,
+                              RandomForestRegressor(
+                                  n_estimators=500, n_jobs=-1),
+                              verbose=True)
+        model.fit(X_train, y_train)
+        dump(model, model_path)
 
     param_grid = {'randomforestregressor__max_depth': [40, 50, 100],  # np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
                   'randomforestregressor__min_samples_split': np.arange(2, 8, 2)
@@ -207,10 +208,12 @@ if __name__ == "__main__":
     # polynomiale feature 3 without biais, with *_per_* features + age RMSE: 678.5200863970292
     # polynomiale feature 3 without biais, with *_per_* features - age - year RMSE: 681.0919899454383
     # * polynomiale feature 3 without biais, with *_per_* features + age - year: RMSE: 677.2515811285315
+    # poly 3 no biais + *_per_* features + age - year + OHE Fueltype & transmission RMSE: 677.2515811285316
+
 
 
 
 
 
     #bsp.get_learning_curve(model, X_train, y_train, scoring='neg_mean_squared_error',show=False,savefig=True)
-    #bsp.plot_learning_curve(model, 'test', X_train, y_train, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5))
+    bsp.plot_learning_curve(model, model_name, X_train, y_train, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5), show=False, savefig=True)
