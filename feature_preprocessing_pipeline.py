@@ -106,7 +106,7 @@ def extract_features(data):
     X['age']=X['year'].max()-X['year']
     X.loc[X['age']<1,'age'] = 1
     X['mileage_per_year'] = X['mileage']/X['age']
-    X.drop('age',axis=1, inplace=True)
+    #X.drop('age',axis=1, inplace=True)
     X['galon_per_year'] = X['mpg']/X['mileage_per_year']
     X['tax_per_mileage'] = X['tax']/X['mileage']
     X['litre_per_mileage'] = X['engine_size']/X['mileage']
@@ -215,6 +215,8 @@ if __name__ == "__main__":
     # polynomiale feature 3 + bias, with *_per_* features  RMSE: 679.4338384834626
     # polynomiale feature 3 without biais, with *_per_* features RMSE: 678.1993773405426
     # polynomiale feature 3 without biais, with *_per_* features + age RMSE: 678.5200863970292
+    # polynomiale feature 3 without biais, with *_per_* features - age - year RMSE: 681.0919899454383
+    # polynomiale feature 3 without biais, with *_per_* features + age - year
 
 
 
