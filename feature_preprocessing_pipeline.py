@@ -73,30 +73,6 @@ def get_transformer(X):
             discretize, kw_args={"kw_args": {"bins": year_bins}}),
         OrdinalEncoder(),
         verbose=False)
-
-    mpg_pipeline = make_pipeline(
-        FunctionTransformer(
-            discretize, kw_args={"kw_args": {"bins": mpg_bins, "labels": ["Low", "Medium", "High"]}}),
-        OrdinalEncoder(),
-        verbose=False)
-
-    strategies = ['uniform', 'quantile', 'kmeans']
-    encoding = ['onehot', 'ordinal']
-
-    engine_pipeline = make_pipeline(
-        FunctionTransformer(
-            discretize, kw_args={"kw_args": {"bins": engine_bins}}),
-        OrdinalEncoder(),
-        verbose=False)
-
-    tax_pipeline = make_pipeline(
-        FunctionTransformer(
-            discretize, kw_args={"kw_args": {"bins": tax_bins}}),
-        OrdinalEncoder(),
-        verbose=False)
-
-    scale_transformer = make_pipeline(
-        StandardScaler())
     
     poly_transformer =make_pipeline(
         PolynomialFeatures(degree=3,interaction_only=True,include_bias=False),
@@ -106,7 +82,8 @@ def get_transformer(X):
     transformer = make_column_transformer(
         (poly_transformer, make_column_selector(dtype_include=np.number)),
         (tsf.TypeConverter('float'), ['mileage']),
-        (year_pipeline, ['year']),
+        #(year_pipeline, ['year']),
+        ('drop',['year']),
         #(mpg_pipeline, ['mpg']),
         (KBinsDiscretizer(n_bins=6,
          encode='onehot', strategy='kmeans'), ['mpg']),
@@ -129,6 +106,7 @@ def extract_features(data):
     X['age']=X['year'].max()-X['year']
     X.loc[X['age']<1,'age'] = 1
     X['mileage_per_year'] = X['mileage']/X['age']
+    X.drop('age',axis=1, inplace=True)
     X['galon_per_year'] = X['mpg']/X['mileage_per_year']
     X['tax_per_mileage'] = X['tax']/X['mileage']
     X['litre_per_mileage'] = X['engine_size']/X['mileage']
@@ -236,6 +214,8 @@ if __name__ == "__main__":
     # polynomiale feature 3 without *_per_* features RMSE: 723.2213099241444
     # polynomiale feature 3 + bias, with *_per_* features  RMSE: 679.4338384834626
     # polynomiale feature 3 without biais, with *_per_* features RMSE: 678.1993773405426
+    # polynomiale feature 3 without biais, with *_per_* features + age RMSE: 678.5200863970292
+
 
 
 
