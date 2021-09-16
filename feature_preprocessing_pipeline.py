@@ -176,7 +176,7 @@ if __name__ == "__main__":
     # evaluate(model, X_val, y_val)
 
     # if model not already exists:
-    model_filename = 'model_500e_poly.joblib'
+    model_filename = 'model_500e_poly2.joblib'
     model_path = join(model_directory_path, model_filename)
     if isfile(model_path):
         model = load(model_path)
