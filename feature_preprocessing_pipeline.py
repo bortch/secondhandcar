@@ -19,6 +19,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 from sklearn.metrics import make_scorer, mean_squared_error, mean_absolute_error
 
+from sklearn.preprocessing import PolynomialFeatures
+
 import bs_lib.bs_transformer as tsf
 import bs_lib.bs_preprocess_lib as bsp
 
@@ -91,7 +93,16 @@ def get_transformer(X):
         OrdinalEncoder(),
         verbose=False)
 
+    scale_transformer = make_pipeline(
+        StandardScaler())
+    
+    poly_transformer =make_pipeline(
+        PolynomialFeatures(degree=3,interaction_only=True,include_bias=False),
+        StandardScaler()
+    )
+
     transformer = make_column_transformer(
+        (poly_transformer, make_column_selector(dtype_include=np.number)),
         (tsf.TypeConverter('float'), ['mileage']),
         (year_pipeline, ['year']),
         #(mpg_pipeline, ['mpg']),
@@ -105,8 +116,8 @@ def get_transformer(X):
         #(categorical_pipeline, ['model', 'brand']),
         ('drop', ['model']),
         (categorical_pipeline, ['brand']),
-        (StandardScaler(), make_column_selector(dtype_include=np.number)),
-        remainder='passthrough', verbose=0)
+        #(scale_transformer, make_column_selector(dtype_include=np.number)),
+        remainder='passthrough', verbose=True)
     return transformer
 
 
@@ -141,11 +152,11 @@ if __name__ == "__main__":
     # training preprocessing
     X = data.drop(labels=['price'], axis=1)
 
-    X['mileage_per_year']=X['mileage']/(1+X['year'].max()-X['year'])
-    X['galon_per_year']=X['mpg']/X['mileage_per_year']
-    X['tax_per_mileage']=X['tax']/X['mileage']
-    X['litre_per_mileage']=X['engine_size']/X['mileage']
-    X['litre_per_galon']=X['engine_size']/X['galon_per_year']
+    X['mileage_per_year'] = X['mileage']/(1+X['year'].max()-X['year'])
+    X['galon_per_year'] = X['mpg']/X['mileage_per_year']
+    X['tax_per_mileage'] = X['tax']/X['mileage']
+    X['litre_per_mileage'] = X['engine_size']/X['mileage']
+    X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
     # Target + Normalisation
     y = np.log(data['price'])
 
@@ -157,27 +168,27 @@ if __name__ == "__main__":
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
-    model = make_pipeline(transformer,
-                          RandomForestRegressor(
-                              n_estimators=200, n_jobs=-1),
-                          verbose=True)
-    model.fit(X_train, y_train)
+    # model = make_pipeline(transformer,
+    #                       RandomForestRegressor(
+    #                           n_estimators=200, n_jobs=-1),
+    #                       verbose=True)
+    #model.fit(X_train, y_train)
     # evaluate(model, X_val, y_val)
 
-    # If model not already exists:
-    # model_filename = '_temp_model_model-0_engine-4-ordinal.joblib'
-    # model_path = join(model_directory_path, model_filename)
-    # if isfile(model_path):
-    #     model = load(model_path)
-    #     #print(model)
-    # else:
-    #     # pipeline: predict preprocessing
-    #     model = make_pipeline(transformer,
-    #                           RandomForestRegressor(
-    #                               n_estimators=200, n_jobs=-1),
-    #                           verbose=False)
-    #     model.fit(X_train, y_train)
-    #     dump(model, model_path)
+    # if model not already exists:
+    model_filename = 'model_500e_poly.joblib'
+    model_path = join(model_directory_path, model_filename)
+    if isfile(model_path):
+        model = load(model_path)
+        # print(model)
+    else:
+        # pipeline: predict preprocessing
+        model = make_pipeline(transformer,
+                              RandomForestRegressor(
+                                  n_estimators=500, n_jobs=-1),
+                              verbose=True)
+        model.fit(X_train, y_train)
+        dump(model, model_path)
 
     param_grid = {'randomforestregressor__max_depth': [40, 50, 100],  # np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
                   'randomforestregressor__min_samples_split': np.arange(2, 8, 2)
@@ -192,7 +203,7 @@ if __name__ == "__main__":
     #     model, param_grid, X_train, y_train, scoring=mse)
 
     evaluate(model, X_val, y_val)
-    
+
     # RMSE: 908.2924800638677
     # drop [Model] : RMSE: 775.1466069992655
     # drop [Brand] : RMSE: 872.0164550638308
@@ -208,6 +219,7 @@ if __name__ == "__main__":
     # add tax_per_mileage: RMSE: 735.1036011216089
     # add litre_per_mileage: RMSE: 710.4270104501544
     # add litre_per_galon: RMSE: 708.0328930831951
+    # RMSE: 707.0531841576233
 
-
-    bsp.get_learning_curve(model, X_train, y_train, scoring='neg_mean_squared_error',show=False,savefig=True)
+    #bsp.get_learning_curve(model, X_train, y_train, scoring='neg_mean_squared_error',show=False,savefig=True)
+    #bsp.plot_learning_curve(model, 'test', X_train, y_train, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5))
