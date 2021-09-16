@@ -176,7 +176,7 @@ if __name__ == "__main__":
     # evaluate(model, X_val, y_val)
 
     # if model not already exists:
-    model_filename = 'model_500e_poly2.joblib'
+    model_filename = 'model_500e_poly3.joblib'
     model_path = join(model_directory_path, model_filename)
     if isfile(model_path):
         model = load(model_path)
@@ -215,12 +215,14 @@ if __name__ == "__main__":
     # drop [Model], Engine_size {bins:4,onehot},mpg{bins:6,ordinal},tax{bins:9,ordinal}: RMSE: 774.9598569675812
     # drop [Model], Engine_size {bins:4,onehot},mpg{bins:6,onehot},tax{bins:9,ordinal}: RMSE: 774.8791007133806
     # add miles_per_year: RMSE: 770.1800524934332
-    # add galon_per_year: RMSE: 752.0092177388406
-    # add tax_per_mileage: RMSE: 735.1036011216089
-    # add litre_per_mileage: RMSE: 710.4270104501544
-    # add litre_per_galon: RMSE: 708.0328930831951
-    # RMSE: 707.0531841576233
-    # polynomiale feature RMSE: 678.1993773405426
+    # previous *_per_* feature + galon_per_year: RMSE: 752.0092177388406
+    # previous *_per_* features + tax_per_mileage: RMSE: 735.1036011216089
+    # previous *_per_* features + litre_per_mileage: RMSE: 710.4270104501544
+    # previous *_per_* features + litre_per_galon: RMSE: 708.0328930831951
+    # polynomiale feature 2 without *_per_* features RMSE: 730.0088958446174
+    # polynomiale feature 3 without *_per_* features RMSE: 
+    # polynomiale feature 3 with *_per_* features RMSE: 678.1993773405426
+
 
 
     #bsp.get_learning_curve(model, X_train, y_train, scoring='neg_mean_squared_error',show=False,savefig=True)
