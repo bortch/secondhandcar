@@ -128,7 +128,7 @@ def extract_features(data):
     X = data.copy()
     X['age']=X['year'].max()-X['year']
     X.loc[X['age']<1,'age'] = 1
-    X['mileage_per_year'] = X['mileage']/(1+X['year'].max()-X['year'])
+    X['mileage_per_year'] = X['mileage']/X['age']
     X['galon_per_year'] = X['mpg']/X['mileage_per_year']
     X['tax_per_mileage'] = X['tax']/X['mileage']
     X['litre_per_mileage'] = X['engine_size']/X['mileage']
