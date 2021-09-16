@@ -97,7 +97,7 @@ def get_transformer(X):
         StandardScaler())
     
     poly_transformer =make_pipeline(
-        PolynomialFeatures(degree=2,interaction_only=True,include_bias=False),
+        PolynomialFeatures(degree=3,interaction_only=True,include_bias=False),
         StandardScaler()
     )
 
