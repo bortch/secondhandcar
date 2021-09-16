@@ -58,7 +58,6 @@ def discretize(X, kw_args):
 
 def get_transformer(X):
 
-    cat_columns = ['transmission', 'fuel_type']
     categorizer = FunctionTransformer(categorize)
     year_bins = np.arange(2009, 2022)
     mpg_bins = [0, 36, 47, 100]
@@ -67,12 +66,6 @@ def get_transformer(X):
 
     categorical_pipeline = make_pipeline(
         categorizer, OneHotEncoder(handle_unknown='ignore'), verbose=False)
-
-    year_pipeline = make_pipeline(
-        FunctionTransformer(
-            discretize, kw_args={"kw_args": {"bins": year_bins}}),
-        OrdinalEncoder(),
-        verbose=False)
     
     poly_transformer =make_pipeline(
         PolynomialFeatures(degree=3,interaction_only=True,include_bias=False),
@@ -82,22 +75,15 @@ def get_transformer(X):
     transformer = make_column_transformer(
         (poly_transformer, make_column_selector(dtype_include=np.number)),
         (tsf.TypeConverter('float'), ['mileage']),
-        #(year_pipeline, ['year']),
-        ('drop',['year']),
-        #(mpg_pipeline, ['mpg']),
         (KBinsDiscretizer(n_bins=6,
          encode='onehot', strategy='kmeans'), ['mpg']),
-        #(engine_pipeline, ['engine_size']),
         (KBinsDiscretizer(n_bins=4, 
         encode='ordinal', strategy='kmeans'), ['engine_size']),
-        #(tax_pipeline, ['tax']),
         (KBinsDiscretizer(n_bins=9,
          encode='ordinal', strategy='kmeans'), ['tax']),
-        (categorizer, cat_columns),
-        #(categorical_pipeline, ['model', 'brand']),
-        ('drop', ['model']),
-        (categorical_pipeline, ['brand']),
-        #(scale_transformer, make_column_selector(dtype_include=np.number)),
+        #(categorizer, ['transmission', 'fuel_type']),
+        ('drop', ['model','year']),
+        (categorical_pipeline, ['brand','transmission', 'fuel_type']),
         remainder='passthrough', verbose=True)
     return transformer
 
@@ -216,7 +202,8 @@ if __name__ == "__main__":
     # polynomiale feature 3 without biais, with *_per_* features RMSE: 678.1993773405426
     # polynomiale feature 3 without biais, with *_per_* features + age RMSE: 678.5200863970292
     # polynomiale feature 3 without biais, with *_per_* features - age - year RMSE: 681.0919899454383
-    # polynomiale feature 3 without biais, with *_per_* features + age - year
+    # * polynomiale feature 3 without biais, with *_per_* features + age - year: RMSE: 677.2515811285315
+
 
 
 
