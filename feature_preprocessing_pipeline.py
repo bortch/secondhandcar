@@ -67,6 +67,9 @@ def get_transformer(X):
     categorical_pipeline = make_pipeline(
         categorizer, OneHotEncoder(handle_unknown='ignore'), verbose=False)
     
+    categorical_ordinal_pipeline = make_pipeline(
+        categorizer, OrdinalEncoder(), verbose=False)
+
     poly_transformer =make_pipeline(
         PolynomialFeatures(degree=3,interaction_only=True,include_bias=False),
         StandardScaler()
@@ -83,7 +86,8 @@ def get_transformer(X):
          encode='ordinal', strategy='kmeans'), ['tax']),
         #(categorizer, ['transmission', 'fuel_type']),
         ('drop', ['model','year']),
-        (categorical_pipeline, ['brand','transmission', 'fuel_type']),
+        (categorical_ordinal_pipeline, ['transmission', 'fuel_type']),
+        (categorical_pipeline, ['brand']),
         remainder='passthrough', verbose=True)
     return transformer
 
