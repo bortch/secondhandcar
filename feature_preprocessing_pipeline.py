@@ -97,7 +97,7 @@ def get_transformer(X):
         StandardScaler())
     
     poly_transformer =make_pipeline(
-        PolynomialFeatures(degree=3,interaction_only=True,include_bias=False),
+        PolynomialFeatures(degree=3,interaction_only=True,include_bias=True),
         StandardScaler()
     )
 
@@ -152,11 +152,11 @@ if __name__ == "__main__":
     # training preprocessing
     X = data.drop(labels=['price'], axis=1)
 
-    # X['mileage_per_year'] = X['mileage']/(1+X['year'].max()-X['year'])
-    # X['galon_per_year'] = X['mpg']/X['mileage_per_year']
-    # X['tax_per_mileage'] = X['tax']/X['mileage']
-    # X['litre_per_mileage'] = X['engine_size']/X['mileage']
-    # X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
+    X['mileage_per_year'] = X['mileage']/(1+X['year'].max()-X['year'])
+    X['galon_per_year'] = X['mpg']/X['mileage_per_year']
+    X['tax_per_mileage'] = X['tax']/X['mileage']
+    X['litre_per_mileage'] = X['engine_size']/X['mileage']
+    X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
     # Target + Normalisation
     y = np.log(data['price'])
 
@@ -168,27 +168,27 @@ if __name__ == "__main__":
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
-    # model = make_pipeline(transformer,
-    #                       RandomForestRegressor(
-    #                           n_estimators=200, n_jobs=-1),
-    #                       verbose=True)
-    #model.fit(X_train, y_train)
-    # evaluate(model, X_val, y_val)
+    model = make_pipeline(transformer,
+                          RandomForestRegressor(
+                              n_estimators=200, n_jobs=-1),
+                          verbose=True)
+    model.fit(X_train, y_train)
+    evaluate(model, X_val, y_val)
 
     # if model not already exists:
-    model_filename = 'model_500e_poly3.joblib'
-    model_path = join(model_directory_path, model_filename)
-    if isfile(model_path):
-        model = load(model_path)
-        # print(model)
-    else:
-        # pipeline: predict preprocessing
-        model = make_pipeline(transformer,
-                              RandomForestRegressor(
-                                  n_estimators=500, n_jobs=-1),
-                              verbose=True)
-        model.fit(X_train, y_train)
-        dump(model, model_path)
+    # model_filename = 'model_500e_poly3.joblib'
+    # model_path = join(model_directory_path, model_filename)
+    # if isfile(model_path):
+    #     model = load(model_path)
+    #     # print(model)
+    # else:
+    #     # pipeline: predict preprocessing
+    #     model = make_pipeline(transformer,
+    #                           RandomForestRegressor(
+    #                               n_estimators=500, n_jobs=-1),
+    #                           verbose=True)
+    #     model.fit(X_train, y_train)
+    #     dump(model, model_path)
 
     param_grid = {'randomforestregressor__max_depth': [40, 50, 100],  # np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
                   'randomforestregressor__min_samples_split': np.arange(2, 8, 2)
@@ -202,7 +202,7 @@ if __name__ == "__main__":
     # model = get_best_estimator(
     #     model, param_grid, X_train, y_train, scoring=mse)
 
-    evaluate(model, X_val, y_val)
+    #evaluate(model, X_val, y_val)
 
     # RMSE: 908.2924800638677
     # drop [Model] : RMSE: 775.1466069992655
@@ -220,8 +220,9 @@ if __name__ == "__main__":
     # previous *_per_* features + litre_per_mileage: RMSE: 710.4270104501544
     # previous *_per_* features + litre_per_galon: RMSE: 708.0328930831951
     # polynomiale feature 2 without *_per_* features RMSE: 730.0088958446174
-    # polynomiale feature 3 without *_per_* features RMSE: 
+    # polynomiale feature 3 without *_per_* features RMSE: 723.2213099241444
     # polynomiale feature 3 with *_per_* features RMSE: 678.1993773405426
+    # polynomiale feature 3 + bias, with *_per_* features RMSE: 678.1993773405426
 
 
 
