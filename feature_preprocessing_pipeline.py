@@ -84,7 +84,9 @@ def get_transformer(X):
     encoding = ['onehot', 'ordinal']
 
     engine_pipeline = make_pipeline(
-        KBinsDiscretizer(n_bins=4, encode=encoding[1], strategy='kmeans'),
+        FunctionTransformer(
+            discretize, kw_args={"kw_args": {"bins": engine_bins}}),
+        OrdinalEncoder(),
         verbose=False)
 
     tax_pipeline = make_pipeline(
@@ -97,7 +99,7 @@ def get_transformer(X):
         StandardScaler())
     
     poly_transformer =make_pipeline(
-        PolynomialFeatures(degree=3,interaction_only=True,include_bias=True),
+        PolynomialFeatures(degree=3,interaction_only=True,include_bias=False),
         StandardScaler()
     )
 
@@ -107,11 +109,13 @@ def get_transformer(X):
         (year_pipeline, ['year']),
         #(mpg_pipeline, ['mpg']),
         (KBinsDiscretizer(n_bins=6,
-         encode=encoding[0], strategy='kmeans'), ['mpg']),
-        (engine_pipeline, ['engine_size']),
+         encode='onehot', strategy='kmeans'), ['mpg']),
+        #(engine_pipeline, ['engine_size']),
+        (KBinsDiscretizer(n_bins=4, 
+        encode='ordinal', strategy='kmeans'), ['engine_size']),
         #(tax_pipeline, ['tax']),
         (KBinsDiscretizer(n_bins=9,
-         encode=encoding[1], strategy='kmeans'), ['tax']),
+         encode='ordinal', strategy='kmeans'), ['tax']),
         (categorizer, cat_columns),
         #(categorical_pipeline, ['model', 'brand']),
         ('drop', ['model']),
@@ -120,6 +124,16 @@ def get_transformer(X):
         remainder='passthrough', verbose=True)
     return transformer
 
+def extract_features(data):
+    X = data.copy()
+    X['age']=X['year'].max()-X['year']
+    X.loc[X['age']<1,'age'] = 1
+    X['mileage_per_year'] = X['mileage']/(1+X['year'].max()-X['year'])
+    X['galon_per_year'] = X['mpg']/X['mileage_per_year']
+    X['tax_per_mileage'] = X['tax']/X['mileage']
+    X['litre_per_mileage'] = X['engine_size']/X['mileage']
+    X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
+    return X
 
 def evaluate(model, X_val, y_val):
     y_pred = model.predict(X_val)
@@ -152,11 +166,7 @@ if __name__ == "__main__":
     # training preprocessing
     X = data.drop(labels=['price'], axis=1)
 
-    X['mileage_per_year'] = X['mileage']/(1+X['year'].max()-X['year'])
-    X['galon_per_year'] = X['mpg']/X['mileage_per_year']
-    X['tax_per_mileage'] = X['tax']/X['mileage']
-    X['litre_per_mileage'] = X['engine_size']/X['mileage']
-    X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
+    
     # Target + Normalisation
     y = np.log(data['price'])
 
@@ -168,7 +178,10 @@ if __name__ == "__main__":
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
-    model = make_pipeline(transformer,
+    get_features = FunctionTransformer(extract_features, validate=False)
+
+    model = make_pipeline(get_features, 
+                          transformer,
                           RandomForestRegressor(
                               n_estimators=200, n_jobs=-1),
                           verbose=True)
@@ -221,8 +234,8 @@ if __name__ == "__main__":
     # previous *_per_* features + litre_per_galon: RMSE: 708.0328930831951
     # polynomiale feature 2 without *_per_* features RMSE: 730.0088958446174
     # polynomiale feature 3 without *_per_* features RMSE: 723.2213099241444
-    # polynomiale feature 3 with *_per_* features RMSE: 678.1993773405426
-    # polynomiale feature 3 + bias, with *_per_* features RMSE: 678.1993773405426
+    # polynomiale feature 3 + bias, with *_per_* features  RMSE: 679.4338384834626
+    # polynomiale feature 3 without biais, with *_per_* features RMSE: 678.1993773405426
 
 
 
