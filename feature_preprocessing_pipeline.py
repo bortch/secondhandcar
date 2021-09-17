@@ -6,8 +6,8 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 
 #from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import FunctionTransformer
-from sklearn.pipeline import make_pipeline
-from sklearn.compose import make_column_transformer
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.compose import make_column_transformer, ColumnTransformer
 from sklearn.compose import make_column_selector
 
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
@@ -59,50 +59,70 @@ def discretize(X, kw_args):
 def get_transformer(X):
 
     categorizer = FunctionTransformer(categorize)
-    year_bins = np.arange(2009, 2022)
-    mpg_bins = [0, 36, 47, 100]
-    engine_bins = [-1, 2, 7]
-    tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
+    # year_bins = np.arange(2009, 2022)
+    # mpg_bins = [0, 36, 47, 100]
+    # engine_bins = [-1, 2, 7]
+    # tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
 
-    categorical_pipeline = make_pipeline(
-        categorizer, OneHotEncoder(handle_unknown='ignore'), verbose=False)
-    
-    categorical_ordinal_pipeline = make_pipeline(
-        categorizer, OrdinalEncoder(), verbose=False)
+    categorical_pipeline = Pipeline(steps=[('Categorize', categorizer),
+                                           ('OHE', OneHotEncoder(handle_unknown='ignore'))], verbose=False)
 
-    poly_transformer =make_pipeline(
-        PolynomialFeatures(degree=3,interaction_only=True,include_bias=False),
-        StandardScaler()
-    )
+    categorical_ordinal_pipeline = Pipeline(steps=[('Categorize', categorizer),
+                                                   ('Ordinal Encoder', OrdinalEncoder())], verbose=False)
 
-    transformer = make_column_transformer(
-        (poly_transformer, make_column_selector(dtype_include=np.number)),
-        (tsf.TypeConverter('float'), ['mileage']),
-        (KBinsDiscretizer(n_bins=6,
-         encode='onehot', strategy='kmeans'), ['mpg']),
-        (KBinsDiscretizer(n_bins=4, 
-        encode='ordinal', strategy='kmeans'), ['engine_size']),
-        (KBinsDiscretizer(n_bins=9,
-         encode='ordinal', strategy='kmeans'), ['tax']),
-        #(categorizer, ['transmission', 'fuel_type']),
-        ('drop', ['model','year']),
-        (categorical_ordinal_pipeline, ['transmission', 'fuel_type']),
-        (categorical_pipeline, ['brand']),
-        remainder='passthrough', verbose=True)
+    poly_transformer = Pipeline(steps=[('Polynomial Features', PolynomialFeatures(degree=3,
+                                                                                  interaction_only=True,
+                                                                                  include_bias=False)),
+                                       ('std Scaler', StandardScaler())]
+                                )
+
+    transformer = ColumnTransformer(
+        [
+            ("Polyfeature Transformer", poly_transformer,
+             make_column_selector(dtype_include=np.number)),
+            ("Float Converter", tsf.TypeConverter('float'), ['mileage']),
+            ("mpg Discretizer", KBinsDiscretizer(n_bins=6,
+                                                 encode='onehot', strategy='kmeans'), ['mpg']),
+            ("engine_size Discretizer", KBinsDiscretizer(n_bins=4,
+                                                         encode='ordinal', strategy='kmeans'), ['engine_size']),
+            ("tax Discretizer", KBinsDiscretizer(n_bins=9,
+                                                 encode='ordinal', strategy='kmeans'), ['tax']),
+            ("Drop Colinear", 'drop', ['model', 'year']),
+            ("Transmission Fuel Ordinal Encoder",
+             categorical_ordinal_pipeline, ['transmission', 'fuel_type']),
+            ("Brand OHE", categorical_pipeline, ['brand'])
+        ], remainder='passthrough', verbose=True, n_jobs=-1)
+
+    # transformer = make_column_transformer(
+    #     (poly_transformer, make_column_selector(dtype_include=np.number)),
+    #     (tsf.TypeConverter('float'), ['mileage']),
+    #     (KBinsDiscretizer(n_bins=6,
+    #      encode='onehot', strategy='kmeans'), ['mpg']),
+    #     (KBinsDiscretizer(n_bins=4,
+    #                       encode='ordinal', strategy='kmeans'), ['engine_size']),
+    #     (KBinsDiscretizer(n_bins=9,
+    #      encode='ordinal', strategy='kmeans'), ['tax']),
+    #     #(categorizer, ['transmission', 'fuel_type']),
+    #     ('drop', ['model', 'year']),
+    #     (categorical_ordinal_pipeline, ['transmission', 'fuel_type']),
+    #     (categorical_pipeline, ['brand']),
+    #     remainder='passthrough', verbose=True)
     return transformer
+
 
 def extract_features(data):
     X = data.copy()
-    X['age']=X['year'].max()-X['year']
-    X.loc[X['age']<1,'age'] = 1
+    X['age'] = X['year'].max()-X['year']
+    X.loc[X['age'] < 1, 'age'] = 1
     X['mileage_per_year'] = X['mileage']/X['age']
     #X.drop('age',axis=1, inplace=True)
-    #X['galon_per_year'] = X['mpg']/X['mileage_per_year']
-    X['galon_per_year'] = X['mileage_per_year']/X['mpg']
+    X['galon_per_year'] = X['mpg']/X['mileage_per_year']
+    #X['galon_per_year'] = X['mileage_per_year']/X['mpg']
     X['tax_per_mileage'] = X['tax']/X['mileage']
     X['litre_per_mileage'] = X['engine_size']/X['mileage']
     X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
     return X
+
 
 def evaluate(model, X_val, y_val):
     y_pred = model.predict(X_val)
@@ -135,7 +155,6 @@ if __name__ == "__main__":
     # training preprocessing
     X = data.drop(labels=['price'], axis=1)
 
-    
     # Target + Normalisation
     y = np.log(data['price'])
 
@@ -149,7 +168,7 @@ if __name__ == "__main__":
 
     get_features = FunctionTransformer(extract_features, validate=False)
 
-    # model = make_pipeline(get_features, 
+    # model = make_pipeline(get_features,
     #                       transformer,
     #                       RandomForestRegressor(
     #                           n_estimators=200, n_jobs=-1),
@@ -157,7 +176,7 @@ if __name__ == "__main__":
     # model.fit(X_train, y_train)
     # evaluate(model, X_val, y_val)
 
-    #if model not already exists:
+    # if model not already exists:
     model_name = 'model_677_'
     model_filename = f'{model_name}.joblib'
     model_path = join(model_directory_path, model_filename)
@@ -166,15 +185,21 @@ if __name__ == "__main__":
         # print(model)
     else:
         # pipeline: predict preprocessing
-        model = make_pipeline(get_features,
-                              transformer,
-                              RandomForestRegressor(
-                                  n_estimators=500, n_jobs=-1),
-                              verbose=True)
+        steps = [("Features Extraction", get_features),
+                 ("Columns Transformer", transformer),
+                 ("Random Forest Regressor", RandomForestRegressor(n_estimators=500, n_jobs=-1))]
+        model = Pipeline(steps=steps, verbose=True)
+
+        # model = make_pipeline(get_features,
+        #                       transformer,
+        #                       RandomForestRegressor(
+        #                           n_estimators=500, n_jobs=-1),
+        #                       verbose=True)
+
         model.fit(X_train, y_train)
         dump(model, model_path)
 
-    param_grid = {'randomforestregressor__max_depth': [40, 50, 100],  # np.arange(8, 14, 2),  # intialement [5, 10, 15, 20] on change après un premier gridsearch où on voit que le max_depth était à 5
+    param_grid = {'randomforestregressor__max_depth': [40, 50, 100],
                   'randomforestregressor__min_samples_split': np.arange(2, 8, 2)
                   }
 
@@ -211,11 +236,6 @@ if __name__ == "__main__":
     # polynomiale feature 3 without biais, with *_per_* features - age - year RMSE: 681.0919899454383
     # * polynomiale feature 3 without biais, with *_per_* features + age - year: RMSE: 677.2515811285315
     # poly 3 no biais + *_per_* features + age - year + OHE Fueltype & transmission RMSE: 677.2515811285316
-
-
-
-
-
 
     #bsp.get_learning_curve(model, X_train, y_train, scoring='neg_mean_squared_error',show=False,savefig=True)
     #bsp.plot_learning_curve(model, model_name, X_train, y_train, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5), show=False, savefig=True)
