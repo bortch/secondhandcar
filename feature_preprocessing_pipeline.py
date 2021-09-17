@@ -74,27 +74,29 @@ def get_transformer(X):
 
     poly_transformer = Pipeline(steps=[('Polynomial Features', PolynomialFeatures(degree=3,
                                                                                   interaction_only=True,
-                                                                                  include_bias=False)),
-                                       ('std Scaler', StandardScaler())],
+                                                                                  include_bias=False))
+                                       #                                               ,
+                                       #    ('std Scaler', StandardScaler())
+                                       ],
                                 verbose=True
                                 )
 
     transformer = ColumnTransformer(
         [
-            ("Poly features Creator", poly_transformer,
-             make_column_selector(dtype_include=np.number)),
-            ("Int to Float Converter",
+            # ("Poly features Creator", poly_transformer,
+            #  make_column_selector(dtype_include=np.number)),
+            ("'mileage' to Float Converter",
              tsf.TypeConverter('float'), ['mileage']),
-            ("mpg Discretizer", KBinsDiscretizer(n_bins=6,
-                                                 encode='onehot', strategy='kmeans'), ['mpg']),
-            ("engine_size Discretizer", KBinsDiscretizer(n_bins=4,
-                                                         encode='ordinal', strategy='kmeans'), ['engine_size']),
-            ("tax Discretizer", KBinsDiscretizer(n_bins=9,
-                                                 encode='ordinal', strategy='kmeans'), ['tax']),
-            ("Drop Colinear Variable", 'drop', ['model', 'year']),
-            ("Transmission-Fuel Ordinal Encoder",
+            ("'mpg' Discretizer", KBinsDiscretizer(n_bins=6,
+                                                   encode='onehot', strategy='kmeans'), ['mpg']),
+            ("'engine_size' Discretizer", KBinsDiscretizer(n_bins=4,
+                                                           encode='ordinal', strategy='kmeans'), ['engine_size']),
+            ("'tax' Discretizer", KBinsDiscretizer(n_bins=9,
+                                                   encode='ordinal', strategy='kmeans'), ['tax']),
+            ("Drop Colinear Variables", 'drop', ['model', 'year']),
+            ("'Transmission', 'Fuel' Ordinal Encoder",
              categorical_ordinal_pipeline, ['transmission', 'fuel_type']),
-            ("Brand OHE", categorical_pipeline, ['brand'])
+            ("'Brand' OHE", categorical_pipeline, ['brand'])
         ], remainder='passthrough', verbose=True)
 
     # transformer = make_column_transformer(
@@ -171,7 +173,16 @@ if __name__ == "__main__":
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
     get_features = FunctionTransformer(extract_features, validate=False)
-
+    scaler = ColumnTransformer([("Scaler",
+                                 StandardScaler(),
+                                 make_column_selector(dtype_include=np.number))], 
+                                 verbose=True, remainder='passthrough')
+    polygenerator = ColumnTransformer([("Poly features generator",
+                                        PolynomialFeatures(degree=3,
+                                                           interaction_only=True,
+                                                           include_bias=False),
+                                        make_column_selector(dtype_include=np.number))], 
+                                        verbose=True, remainder='passthrough')
     # model = make_pipeline(get_features,
     #                       transformer,
     #                       RandomForestRegressor(
@@ -192,8 +203,12 @@ if __name__ == "__main__":
         # pipeline: predict preprocessing
         steps = [
             ("Features Extraction", get_features),
+            #("Overall Scaling", StandardScaler()),  # hope it helps Discretizing
             ("Columns Transformer", transformer),
-            ("Random Forest Regressor", RandomForestRegressor(n_estimators=nb_estimators, n_jobs=2))]
+            ('Poly Generator', PolynomialFeatures(degree=3,
+                                                           interaction_only=True,
+                                                           include_bias=False)),
+            ("Random Forest Regressor", RandomForestRegressor(n_estimators=nb_estimators, n_jobs=-1))]
         model = Pipeline(steps=steps, verbose=True)
 
         # model = make_pipeline(get_features,
