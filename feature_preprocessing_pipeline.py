@@ -170,8 +170,6 @@ if __name__ == "__main__":
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
-    get_features = FunctionTransformer(extract_features, validate=False)
-
     # model = make_pipeline(get_features,
     #                       transformer,
     #                       RandomForestRegressor(
@@ -191,9 +189,9 @@ if __name__ == "__main__":
     else:
         # pipeline: predict preprocessing
         steps = [
-            ("Features Extraction", get_features),
+            ("Features Extraction", FunctionTransformer(extract_features, validate=False)),
             ("Columns Transformer", transformer),
-            ("Random Forest Regressor", RandomForestRegressor(n_estimators=nb_estimators, n_jobs=2))]
+            ("Random Forest Regressor", RandomForestRegressor(n_estimators=nb_estimators, n_jobs=-1))]
         model = Pipeline(steps=steps, verbose=True)
 
         # model = make_pipeline(get_features,
