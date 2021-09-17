@@ -165,7 +165,8 @@ if __name__ == "__main__":
         # print(model)
     else:
         # pipeline: predict preprocessing
-        model = make_pipeline(transformer,
+        model = make_pipeline(get_features,
+                              transformer,
                               RandomForestRegressor(
                                   n_estimators=500, n_jobs=-1),
                               verbose=True)
