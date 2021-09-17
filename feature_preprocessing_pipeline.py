@@ -58,17 +58,17 @@ def discretize(X, kw_args):
 
 def get_transformer(X):
 
-    categorizer = FunctionTransformer(categorize)
+    # categorizer = FunctionTransformer(categorize)
     # year_bins = np.arange(2009, 2022)
     # mpg_bins = [0, 36, 47, 100]
     # engine_bins = [-1, 2, 7]
     # tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
 
-    categorical_pipeline = Pipeline(steps=[('Categorizer', categorizer),
+    categorical_pipeline = Pipeline(steps=[('Categorizer', FunctionTransformer(categorize)),
                                            ('OHE', OneHotEncoder(handle_unknown='ignore'))],
                                     verbose=True)
 
-    categorical_ordinal_pipeline = Pipeline(steps=[('Categorizer', categorizer),
+    categorical_ordinal_pipeline = Pipeline(steps=[('Categorizer', FunctionTransformer(categorize)),
                                                    ('Ordinal Encoder', OrdinalEncoder())],
                                             verbose=True)
 
