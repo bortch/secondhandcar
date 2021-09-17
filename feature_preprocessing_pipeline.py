@@ -64,31 +64,35 @@ def get_transformer(X):
     # engine_bins = [-1, 2, 7]
     # tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
 
-    categorical_pipeline = Pipeline(steps=[('Categorize', categorizer),
-                                           ('OHE', OneHotEncoder(handle_unknown='ignore'))], verbose=False)
+    categorical_pipeline = Pipeline(steps=[('Categorizer', categorizer),
+                                           ('OHE', OneHotEncoder(handle_unknown='ignore'))],
+                                    verbose=True)
 
-    categorical_ordinal_pipeline = Pipeline(steps=[('Categorize', categorizer),
-                                                   ('Ordinal Encoder', OrdinalEncoder())], verbose=False)
+    categorical_ordinal_pipeline = Pipeline(steps=[('Categorizer', categorizer),
+                                                   ('Ordinal Encoder', OrdinalEncoder())],
+                                            verbose=True)
 
     poly_transformer = Pipeline(steps=[('Polynomial Features', PolynomialFeatures(degree=3,
                                                                                   interaction_only=True,
                                                                                   include_bias=False)),
-                                       ('std Scaler', StandardScaler())]
+                                       ('std Scaler', StandardScaler())],
+                                verbose=True
                                 )
 
     transformer = ColumnTransformer(
         [
-            ("Polyfeature Transformer", poly_transformer,
+            ("Poly features Creator", poly_transformer,
              make_column_selector(dtype_include=np.number)),
-            ("Float Converter", tsf.TypeConverter('float'), ['mileage']),
+            ("Int to Float Converter",
+             tsf.TypeConverter('float'), ['mileage']),
             ("mpg Discretizer", KBinsDiscretizer(n_bins=6,
                                                  encode='onehot', strategy='kmeans'), ['mpg']),
             ("engine_size Discretizer", KBinsDiscretizer(n_bins=4,
                                                          encode='ordinal', strategy='kmeans'), ['engine_size']),
             ("tax Discretizer", KBinsDiscretizer(n_bins=9,
                                                  encode='ordinal', strategy='kmeans'), ['tax']),
-            ("Drop Colinear", 'drop', ['model', 'year']),
-            ("Transmission Fuel Ordinal Encoder",
+            ("Drop Colinear Variable", 'drop', ['model', 'year']),
+            ("Transmission-Fuel Ordinal Encoder",
              categorical_ordinal_pipeline, ['transmission', 'fuel_type']),
             ("Brand OHE", categorical_pipeline, ['brand'])
         ], remainder='passthrough', verbose=True, n_jobs=-1)
