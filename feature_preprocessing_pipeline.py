@@ -41,11 +41,11 @@ from joblib import dump, load
 # [X] Standard Scaling
 
 
-def categorize(X):
+def categorise(X):
     X = pd.DataFrame(X).copy()
     columns = X.select_dtypes(include=['object']).columns.tolist()
     for c in columns:
-        #print(f"\nCategorize: {c}\n")
+        #print(f"\nCategorise: {c}\n")
         X[c] = X[c].astype('category')
         X[c] = X[c].cat.codes
     return X
@@ -58,17 +58,17 @@ def discretize(X, kw_args):
 
 def get_transformer(X):
 
-    # categorizer = FunctionTransformer(categorize)
+    # categoriser = FunctionTransformer(categorise)
     # year_bins = np.arange(2009, 2022)
     # mpg_bins = [0, 36, 47, 100]
     # engine_bins = [-1, 2, 7]
     # tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
 
-    categorical_pipeline = Pipeline(steps=[('Categorizer', FunctionTransformer(categorize)),
+    categorical_pipeline = Pipeline(steps=[('Categoriser', FunctionTransformer(categorise)),
                                            ('OHE', OneHotEncoder(handle_unknown='ignore'))],
                                     verbose=True)
 
-    categorical_ordinal_pipeline = Pipeline(steps=[('Categorizer', FunctionTransformer(categorize)),
+    categorical_ordinal_pipeline = Pipeline(steps=[('Categoriser', FunctionTransformer(categorise)),
                                                    ('Ordinal Encoder', OrdinalEncoder())],
                                             verbose=True)
 
@@ -106,7 +106,7 @@ def get_transformer(X):
     #                       encode='ordinal', strategy='kmeans'), ['engine_size']),
     #     (KBinsDiscretizer(n_bins=9,
     #      encode='ordinal', strategy='kmeans'), ['tax']),
-    #     #(categorizer, ['transmission', 'fuel_type']),
+    #     #(categoriser, ['transmission', 'fuel_type']),
     #     ('drop', ['model', 'year']),
     #     (categorical_ordinal_pipeline, ['transmission', 'fuel_type']),
     #     (categorical_pipeline, ['brand']),
