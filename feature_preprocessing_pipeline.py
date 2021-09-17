@@ -184,7 +184,7 @@ if __name__ == "__main__":
     model_name = 'model_RMSE-'
     model_filename = f'{model_name}.joblib'
     model_path = join(model_directory_path, model_filename)
-    nb_estimators = 1 #500
+    nb_estimators = 500
     if isfile(model_path):
         model = load(model_path)
         # print(model)
