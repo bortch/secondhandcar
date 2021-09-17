@@ -97,7 +97,8 @@ def extract_features(data):
     X.loc[X['age']<1,'age'] = 1
     X['mileage_per_year'] = X['mileage']/X['age']
     #X.drop('age',axis=1, inplace=True)
-    X['galon_per_year'] = X['mpg']/X['mileage_per_year']
+    #X['galon_per_year'] = X['mpg']/X['mileage_per_year']
+    X['galon_per_year'] = X['mileage_per_year']/X['mpg']
     X['tax_per_mileage'] = X['tax']/X['mileage']
     X['litre_per_mileage'] = X['engine_size']/X['mileage']
     X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
