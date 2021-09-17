@@ -41,7 +41,7 @@ from joblib import dump, load
 # [X] Standard Scaling
 
 
-def categorise(X):
+def categorize(X):
     X = pd.DataFrame(X).copy()
     columns = X.select_dtypes(include=['object']).columns.tolist()
     for c in columns:
@@ -58,17 +58,17 @@ def discretize(X, kw_args):
 
 def get_transformer(X):
 
-    # categoriser = FunctionTransformer(categorise)
+    # categorizer = FunctionTransformer(categorise)
     # year_bins = np.arange(2009, 2022)
     # mpg_bins = [0, 36, 47, 100]
     # engine_bins = [-1, 2, 7]
     # tax_bins = [-1, 100, 125, 175, 225, 250, 275, 1000]
 
-    categorical_pipeline = Pipeline(steps=[('Categoriser', FunctionTransformer(categorise)),
+    categorical_pipeline = Pipeline(steps=[('Categorizer', FunctionTransformer(categorize)),
                                            ('OHE', OneHotEncoder(handle_unknown='ignore'))],
                                     verbose=True)
 
-    categorical_ordinal_pipeline = Pipeline(steps=[('Categoriser', FunctionTransformer(categorise)),
+    categorical_ordinal_pipeline = Pipeline(steps=[('Categorizer', FunctionTransformer(categorize)),
                                                    ('Ordinal Encoder', OrdinalEncoder())],
                                             verbose=True)
 
@@ -95,7 +95,7 @@ def get_transformer(X):
             ("Transmission-Fuel Ordinal Encoder",
              categorical_ordinal_pipeline, ['transmission', 'fuel_type']),
             ("Brand OHE", categorical_pipeline, ['brand'])
-        ], remainder='passthrough', verbose=True, n_jobs=-1)
+        ], remainder='passthrough', verbose=True)
 
     # transformer = make_column_transformer(
     #     (poly_transformer, make_column_selector(dtype_include=np.number)),
@@ -106,7 +106,7 @@ def get_transformer(X):
     #                       encode='ordinal', strategy='kmeans'), ['engine_size']),
     #     (KBinsDiscretizer(n_bins=9,
     #      encode='ordinal', strategy='kmeans'), ['tax']),
-    #     #(categoriser, ['transmission', 'fuel_type']),
+    #     #(categorizer, ['transmission', 'fuel_type']),
     #     ('drop', ['model', 'year']),
     #     (categorical_ordinal_pipeline, ['transmission', 'fuel_type']),
     #     (categorical_pipeline, ['brand']),
@@ -181,17 +181,19 @@ if __name__ == "__main__":
     # evaluate(model, X_val, y_val)
 
     # if model not already exists:
-    model_name = 'model_677_'
+    model_name = 'model_RMSE-'
     model_filename = f'{model_name}.joblib'
     model_path = join(model_directory_path, model_filename)
+    nb_estimators = 1 #500
     if isfile(model_path):
         model = load(model_path)
         # print(model)
     else:
         # pipeline: predict preprocessing
-        steps = [("Features Extraction", get_features),
-                 ("Columns Transformer", transformer),
-                 ("Random Forest Regressor", RandomForestRegressor(n_estimators=500, n_jobs=-1))]
+        steps = [
+            ("Features Extraction", get_features),
+            ("Columns Transformer", transformer),
+            ("Random Forest Regressor", RandomForestRegressor(n_estimators=nb_estimators, n_jobs=2))]
         model = Pipeline(steps=steps, verbose=True)
 
         # model = make_pipeline(get_features,
