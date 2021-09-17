@@ -97,7 +97,7 @@ def extract_features(data):
     X.loc[X['age']<1,'age'] = 1
     X['mileage_per_year'] = X['mileage']/X['age']
     #X.drop('age',axis=1, inplace=True)
-    X['galon_per_year'] = X['mpg']/X['mileage_per_year']
+    X['galon_per_year'] = X['mileage_per_year']/X['mpg']
     X['tax_per_mileage'] = X['tax']/X['mileage']
     X['litre_per_mileage'] = X['engine_size']/X['mileage']
     X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # evaluate(model, X_val, y_val)
 
     #if model not already exists:
-    model_name = 'model_677'
+    model_name = 'model_677_'
     model_filename = f'{model_name}.joblib'
     model_path = join(model_directory_path, model_filename)
     if isfile(model_path):
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     # model = get_best_estimator(
     #     model, param_grid, X_train, y_train, scoring=mse)
 
-    #evaluate(model, X_val, y_val)
+    evaluate(model, X_val, y_val)
 
     # RMSE: 908.2924800638677
     # drop [Model] : RMSE: 775.1466069992655
@@ -216,4 +216,4 @@ if __name__ == "__main__":
 
 
     #bsp.get_learning_curve(model, X_train, y_train, scoring='neg_mean_squared_error',show=False,savefig=True)
-    bsp.plot_learning_curve(model, model_name, X_train, y_train, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5), show=False, savefig=True)
+    #bsp.plot_learning_curve(model, model_name, X_train, y_train, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5), show=False, savefig=True)
