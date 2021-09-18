@@ -24,6 +24,10 @@ from sklearn.preprocessing import PolynomialFeatures
 import bs_lib.bs_transformer as tsf
 import bs_lib.bs_preprocess_lib as bsp
 
+from scipy.stats import zscore
+from sklearn.impute import KNNImputer
+from bs_lib.bs_eda import get_numerical_columns
+
 from joblib import dump, load
 
 # TODO:
@@ -69,7 +73,7 @@ def get_transformer(X):
                                     verbose=True)
 
     categorical_ordinal_pipeline = Pipeline(steps=[('Categorizer', FunctionTransformer(categorize)),
-                                                   ('Ordinal Encoder', OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value=np.nan))],
+                                                   ('Ordinal Encoder', OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=np.nan))],
                                             verbose=True)
 
     poly_transformer = Pipeline(steps=[('Polynomial Features', PolynomialFeatures(degree=3,
@@ -129,20 +133,34 @@ def extract_features(data):
     X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
     return X
 
+
 def clean_variables(data):
     df = data.copy()
     # remove duplicate
-    df.drop_duplicates(inplace = True)
+    df.drop_duplicates(inplace=True)
     # remove unhandled categories
-    df = df[df['transmission']!='Other']
-    df = df[(df['fuel_type']!='Other')]
-    df = df[(df['fuel_type']!='Electric')]
+    df = df[df['transmission'] != 'Other']
+    df = df[(df['fuel_type'] != 'Other')]
+    df = df[(df['fuel_type'] != 'Electric')]
     return df
+
 
 def evaluate(model, X_val, y_val):
     y_pred = model.predict(X_val)
     rmse = np.sqrt(mean_squared_error(np.exp(y_val), np.exp(y_pred)))
     print(f"RMSE: {rmse}")
+    return np.exp(y_pred), np.exp(y_val)
+
+
+def evaluate_prediction(model, X_val, y_val):
+    y_pred = model.predict(X_val)
+    rmse = np.sqrt(mean_squared_error(np.exp(y_val), np.exp(y_pred)))
+    print(f"RMSE: {rmse}")
+    y_pred = np.exp(y_pred)
+    y_val = np.exp(y_val)
+    print("prediction \t| real price")
+    for i in range(len(y_pred)):
+        print(f"{y_pred[i:i+1][0]:.0f} \t\t| {int(y_val[i:i+1].values[0])}")
 
 
 def fit_evaluate(model, X_train, y_train, X_val, y_val):
@@ -160,38 +178,77 @@ def get_best_estimator(model, param_grid, X_train, y_train, scoring):
     return grid.best_estimator_
 
 
+def get_data(file_path, target_column, dataset_directory_path='./dataset/', sample=None, callback=None):
+    data = pd.read_csv(join(dataset_directory_path, file_path), index_col=0)
+    for c in callback:
+        data = c(data)
+    if sample:
+        data = data.sample(n=sample)
+    X = data.drop(labels=[target_column], axis=1)
+    y = np.log(data[target_column])  # plus normalisation
+    return X, y
+
+def x_or_nan(x,thresh):
+    # mask of all rows whose value > thresh
+    if np.abs(zscore(x, nan_policy = 'omit')) > thresh:
+        return np.nan
+    else:
+        return x
+
+def prepare_data(data):
+    df = data.copy()
+    columns = get_numerical_columns(df)
+    thresh = 3
+    outliers = df[columns].apply(lambda x: np.abs(zscore(x, nan_policy = 'omit')) > thresh)
+    # replace value from outliers by nan
+    df[outliers] = np.nan
+    
+    imputer = KNNImputer(weights='distance')
+    #columns = get_numerical_columns(df)
+    df[columns] = pd.DataFrame(imputer.fit_transform(df[columns]),columns=columns)
+    return df
+
 if __name__ == "__main__":
     np.random.seed(1)
 
     dataset_directory_path = 'dataset/'
     model_directory_path = 'model/'
-    dataset_file = 'train_set_light_preprocessed.csv'
-    data = pd.read_csv(join(dataset_directory_path, dataset_file), index_col=0)
-    # training preprocessing
-    X = data.drop(labels=['price'], axis=1)
+    train_set_file = 'train_set.csv'
+    val_set_file = 'test_set.csv'
+    train_data = pd.read_csv(
+        join(dataset_directory_path, train_set_file), index_col=0)
 
-    # Target + Normalisation
-    y = np.log(data['price'])
+    #X_train = train_data.drop(labels=['price'], axis=1)
+    # y_train = np.log(train_data['price']) # Target + Normalisation
+    X_train, y_train = get_data(file_path=train_set_file, target_column='price',
+                                dataset_directory_path=dataset_directory_path, 
+                                sample=None, callback=[clean_variables,prepare_data])
+    X_val, y_val = get_data(file_path=val_set_file, target_column='price',
+                            dataset_directory_path=dataset_directory_path, 
+                            sample=None, callback=[clean_variables])
+    #val_data = pd.read_csv(join(dataset_directory_path, val_set_file), index_col=0)
+    #X_val = val_data.drop(labels=['price'], axis=1)
+    #y_val = np.log(val_data['price'])
 
-    transformer = get_transformer(X)
+    transformer = get_transformer(X_train)
 
     # testing
     # X_ = pd.DataFrame(transformer.fit_transform(X).toarray())
     # #print(X_.info())
 
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
+#    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
     # get_features = FunctionTransformer(extract_features, validate=False)
     # get_cleaned_variables = FunctionTransformer(clean_variables)
     # scaler = ColumnTransformer([("Scaler",
     #                              StandardScaler(),
-    #                              make_column_selector(dtype_include=np.number))], 
+    #                              make_column_selector(dtype_include=np.number))],
     #                              verbose=True, remainder='passthrough')
     # polygenerator = ColumnTransformer([("Poly features generator",
     #                                     PolynomialFeatures(degree=3,
     #                                                        interaction_only=True,
     #                                                        include_bias=False),
-    #                                     make_column_selector(dtype_include=np.number))], 
+    #                                     make_column_selector(dtype_include=np.number))],
     #                                     verbose=True, remainder='passthrough')
 
     # model = make_pipeline(get_features,
@@ -214,9 +271,11 @@ if __name__ == "__main__":
         # pipeline: predict preprocessing
         steps = [
             #('Clean Variables',FunctionTransformer(clean_variables)),
-            ("Features Extraction", FunctionTransformer(extract_features, validate=False)),
+            ("Features Extraction", FunctionTransformer(
+                extract_features, validate=False)),
             ("Columns Transformer", transformer),
-            ("Random Forest Regressor", RandomForestRegressor(n_estimators=nb_estimators, n_jobs=-1))]
+            ("Random Forest Regressor", RandomForestRegressor(n_estimators=nb_estimators, n_jobs=-1))
+            ]
         model = Pipeline(steps=steps, verbose=True)
 
         # model = make_pipeline(get_features,
@@ -264,7 +323,7 @@ if __name__ == "__main__":
     # polynomiale feature 3 without biais, with *_per_* features + age RMSE: 678.5200863970292
     # polynomiale feature 3 without biais, with *_per_* features - age - year RMSE: 681.0919899454383
     # * polynomiale feature 3 without biais, with *_per_* features + age - year: RMSE: 677.2515811285315
-    # poly 3 no biais + *_per_* features + age - year + OHE Fueltype & transmission RMSE: 677.2515811285316
+    # poly 3 no biais + *_per_* features + age - year + OHE Fueltype & transmission RMSE: 677.2515811285316 RMSE: 677.2666317999145
 
     #bsp.get_learning_curve(model, X_train, y_train, scoring='neg_mean_squared_error',show=False,savefig=True)
     #bsp.plot_learning_curve(model, model_name, X_train, y_train, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5), show=False, savefig=True)
