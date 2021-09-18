@@ -10,7 +10,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.compose import make_column_transformer, ColumnTransformer
 from sklearn.compose import make_column_selector
 
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 
 from sklearn.preprocessing import KBinsDiscretizer
@@ -69,7 +69,7 @@ def get_transformer(X):
                                     verbose=True)
 
     categorical_ordinal_pipeline = Pipeline(steps=[('Categorizer', FunctionTransformer(categorize)),
-                                                   ('Ordinal Encoder', OrdinalEncoder())],
+                                                   ('Ordinal Encoder', OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value=np.nan))],
                                             verbose=True)
 
     poly_transformer = Pipeline(steps=[('Polynomial Features', PolynomialFeatures(degree=3,
@@ -129,6 +129,15 @@ def extract_features(data):
     X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
     return X
 
+def clean_variables(data):
+    df = data.copy()
+    # remove duplicate
+    df.drop_duplicates(inplace = True)
+    # remove unhandled categories
+    df = df[df['transmission']!='Other']
+    df = df[(df['fuel_type']!='Other')]
+    df = df[(df['fuel_type']!='Electric')]
+    return df
 
 def evaluate(model, X_val, y_val):
     y_pred = model.predict(X_val)
@@ -172,7 +181,8 @@ if __name__ == "__main__":
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
 
-    get_features = FunctionTransformer(extract_features, validate=False)
+    # get_features = FunctionTransformer(extract_features, validate=False)
+    # get_cleaned_variables = FunctionTransformer(clean_variables)
     # scaler = ColumnTransformer([("Scaler",
     #                              StandardScaler(),
     #                              make_column_selector(dtype_include=np.number))], 
@@ -193,7 +203,7 @@ if __name__ == "__main__":
     # evaluate(model, X_val, y_val)
 
     # if model not already exists:
-    model_name = 'model_RMSE-'
+    model_name = 'model_RMSE-678'
     model_filename = f'{model_name}.joblib'
     model_path = join(model_directory_path, model_filename)
     nb_estimators = 500
@@ -203,6 +213,7 @@ if __name__ == "__main__":
     else:
         # pipeline: predict preprocessing
         steps = [
+            #('Clean Variables',FunctionTransformer(clean_variables)),
             ("Features Extraction", FunctionTransformer(extract_features, validate=False)),
             ("Columns Transformer", transformer),
             ("Random Forest Regressor", RandomForestRegressor(n_estimators=nb_estimators, n_jobs=-1))]
