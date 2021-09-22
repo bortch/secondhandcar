@@ -55,30 +55,78 @@ def fit_evaluate(model, X_train, y_train, X_val, y_val):
     model.fit(X_train, y_train)
     evaluate(model, X_val, y_val)
 
+def get_data(file_name, target_column, dataset_directory_path='./dataset/', sample=None, callback=None, prefix='saved', show=False):
+    saved_file_name = f"{prefix}_{file_name}"
+    saved_file_path = join(dataset_directory_path, saved_file_name)
+    if isfile(saved_file_path):
+        data = pd.read_csv(saved_file_path, index_col=0)
+        if show:
+            print(f"{file_name} already processed, {saved_file_name} loaded")
+    else:
+        file_path = join(dataset_directory_path, file_name)
+        data = pd.read_csv(file_path, index_col=0)
+        for c in callback:
+            data = c(data)
+        data.to_csv(saved_file_path)
+        if show:
+            print(f"{file_name} loaded\n A new file was saved as {saved_file_name}")
+    if sample:
+        data = data.sample(n=sample)
+    X = data.drop(labels=[target_column], axis=1)
+    y = np.log(data[target_column])  # plus normalisation
+    if show:
+        print(f"X: {X.shape}\ny: {y.shape}")
+    return X, y
+
+def clean_variables(data):
+    df = data.copy()
+    # remove duplicate
+    df.drop_duplicates(inplace=True)
+    # remove unhandled categories
+    #df = df[df['transmission'] != 'Other']
+    #df = df[(df['fuel_type'] != 'Other')]
+    #df = df[(df['fuel_type'] != 'Electric')]
+    return df
+
+def prepare_data(data):
+    df = data.copy()
+    # columns = get_numerical_columns(df)
+    # thresh = 3
+    # outliers = df[columns].apply(lambda x: np.abs(
+    #     zscore(x, nan_policy='omit')) > thresh)
+    # # replace value from outliers by nan
+    # df[outliers] = np.nan
+
+    # imputer = KNNImputer(weights='distance')
+    #  #columns = get_numerical_columns(df)
+    # df[columns] = pd.DataFrame(imputer.fit_transform(df[columns]), columns=columns)
+    return df
 
 if __name__ == "__main__":
     np.random.seed(1)
 
     dataset_directory_path = 'dataset/'
     model_directory_path = 'model/'
-    dataset_file = 'train_set.csv'
-    data = pd.read_csv(join(dataset_directory_path, dataset_file), index_col=0)
-    # training preprocessing
-    X = data.drop(labels=['price'], axis=1)
-    # add feature for categorisation
-    X[['year_category', 'mpg_category', 'engine_size_category', 'tax_category']] = None
+    train_set_file = 'train_set.csv'
+    val_set_file = 'val_set.csv'
 
-    # Target + Normalisation
-    y = np.log(data['price'])
+    X_train, y_train = get_data(file_name=train_set_file, target_column='price',
+                                dataset_directory_path=dataset_directory_path,
+                                sample=None,
+                                callback=[clean_variables,
+                                          prepare_data],
+                                show=True,prefix='base')
+    X_val, y_val = get_data(file_name=val_set_file, target_column='price',
+                            dataset_directory_path=dataset_directory_path,
+                            sample=None, callback=[clean_variables],
+                            show=True,prefix='base')
 
-    transformer = get_transformer(X)
+    transformer = get_transformer(X_train)
 
     # testing
     # X_ = pd.DataFrame(transformer.fit_transform(X).toarray())
     # print(X_.info())
-
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=.15)
-
+    
     # If model not already exists:
     model_filename = 'base_score_model.joblib'
     model_path = join(model_directory_path, model_filename)
@@ -89,14 +137,14 @@ if __name__ == "__main__":
         # pipeline: predict preprocessing
         model = make_pipeline(transformer,
                               RandomForestRegressor(
-                                  n_estimators=200, verbose=1),
+                                  n_estimators=100, verbose=1,n_jobs=-1),
                               verbose=True)
         model.fit(X_train, y_train)
         dump(model, model_path)
 
     evaluate(model, X_val, y_val)
 
-    # score: 2162.64987495974
-
-    bsp.get_learning_curve(model, X_train, y_train,
-                           scoring='neg_mean_squared_error')
+    # score: 1874.8402339000947
+ 
+    # bsp.get_learning_curve(model, X_train, y_train,
+    #                        scoring='neg_mean_squared_error')
