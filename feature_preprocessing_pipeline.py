@@ -2,6 +2,7 @@
 
 import sys
 from os.path import join, isfile
+from matplotlib.pyplot import title
 import numpy as np
 import pandas as pd
 
@@ -26,12 +27,14 @@ from sklearn.preprocessing import PolynomialFeatures
 
 import bs_lib.bs_transformer as tsf
 import bs_lib.bs_preprocess_lib as bsp
+import bs_lib.bs_terminal as terminal
 
 from scipy.stats import zscore
 from sklearn.impute import KNNImputer
 from bs_lib.bs_eda import get_numerical_columns, get_categorical_columns, train_val_test_split
 
 from joblib import dump, load
+
 
 # TODO:
 # Preprocessing for All
@@ -137,9 +140,26 @@ def evaluate_prediction(model, X_val, y_val):
     print(f"RMSE: {rmse}")
     y_pred = np.exp(y_pred)
     y_val = np.exp(y_val)
-    print("prediction \t| real price")
+
+    columns = []
+    columns.append(terminal.create_column('Prediction'))
+    columns.append(terminal.create_column('Real Price'))
+    columns.append(terminal.create_column('Error'))
+    data = []
     for i in range(len(y_pred)):
-        print(f"{y_pred[i:i+1][0]:.0f} \t\t| {int(y_val[i:i+1].values[0])}")
+        row = []
+        pred = y_pred[i:i+1][0]
+        real = int(y_val[i:i+1].values[0])
+        error = np.abs(real-pred)
+        row.append(f"{pred:.0f}")
+        row.append(f"{real}")
+        row.append(f"{error}")
+        data.append(row)
+    table = terminal.create_table(title="Prediction",
+                                  columns=columns,
+                                  data=data)
+    content = terminal.parse_content(table)
+    terminal.article(title="Model Evaluation", content=content)
 
 
 def fit_evaluate(model, X_train, y_train, X_val, y_val):
@@ -260,8 +280,8 @@ def numerical_imputer(data, n_neighbors=10, weights='uniform'):
     if(has_nan):
         print("\t\timputing ...")
         imputer = KNNImputer(n_neighbors=n_neighbors, weights=weights)
-        df = imputer.fit_transform(df[columns])
-        print(df.info())
+        df[columns] = imputer.fit_transform(df[columns])
+        print(df)
     # df.replace(np.inf, np.nan)
     # df.replace(-np.inf, np.nan)
     print("\t\tImputation done?", not df.isnull().values.any())
@@ -327,7 +347,7 @@ if __name__ == "__main__":
     prefix = 'prepared'
 
     all_data = load_data(all_data_file, dataset_directory_path,
-                         callback=[clean_variables, drop_outliers],
+                         callback=[clean_variables, nan_outliers],
                          prefix=prefix, show=True)
 
     X, y = get_features_target(all_data, target_name='price', show=True)
@@ -338,7 +358,9 @@ if __name__ == "__main__":
                                                                           val_size=.15,
                                                                           test_size=.1,
                                                                           random_state=1,
-                                                                          show=True)
+                                                                          show=True,
+                                                                          export=True,
+                                                                          directory_path=dataset_directory_path)
     # *** Modify train_set for training *** #
     X_train_filename = 'X_train.csv'
     X_train_file = f"{prefix}_{X_train_filename}"
@@ -346,7 +368,8 @@ if __name__ == "__main__":
     if isfile(X_train_file_path):
         # print(X_train_file_path)
         X_train = load_data(file_name=X_train_filename,
-                            dataset_directory_path=dataset_directory_path, prefix=prefix)
+                            dataset_directory_path=dataset_directory_path,
+                            prefix=prefix)
         # print(X_train.info())
     else:
         X_train = numerical_imputer(
@@ -363,7 +386,7 @@ if __name__ == "__main__":
     model_name = 'RFR_1829'
     model_filename = f'{model_name}.joblib'
     model_path = join(model_directory_path, model_filename)
-    nb_estimators = 10
+    nb_estimators = 100
     if isfile(model_path):
         model = load(model_path)
         # print(model)
@@ -399,7 +422,6 @@ if __name__ == "__main__":
         'transformer__poly__degree': [2, 3],
         'transformer__poly__interaction_only': [True, False],
         'transformer__poly__include_bias': [True, False],
-
         #   {'transformer__poly__degree': 2,
         #   'transformer__poly__include_bias': False,
         #   'transformer__poly__interaction_only': False}
@@ -441,7 +463,6 @@ if __name__ == "__main__":
     evaluate(model, X_val, y_val)
 
     #RMSE: 1829.6801093112176
-
 
     # RMSE: 908.2924800638677
     # drop [Model] : RMSE: 775.1466069992655
