@@ -141,10 +141,6 @@ def evaluate_prediction(model, X_val, y_val):
     y_pred = np.exp(y_pred)
     y_val = np.exp(y_val)
 
-    columns = []
-    columns.append(terminal.create_column('Prediction'))
-    columns.append(terminal.create_column('Real Price'))
-    columns.append(terminal.create_column('Error'))
     data = []
     for i in range(len(y_pred)):
         row = []
@@ -156,7 +152,7 @@ def evaluate_prediction(model, X_val, y_val):
         row.append(f"{error}")
         data.append(row)
     table = terminal.create_table(title="Prediction",
-                                  columns=columns,
+                                  columns=['Prediction','Real Price','Error'],
                                   data=data)
     terminal.article(title="Model Evaluation", content=table)
 
