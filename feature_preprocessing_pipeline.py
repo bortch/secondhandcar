@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import sys
+from os import rename
 from os.path import join, isfile
 from matplotlib.pyplot import title
 import numpy as np
@@ -30,8 +31,11 @@ import bs_lib.bs_preprocess_lib as bsp
 import bs_lib.bs_terminal as terminal
 
 from scipy.stats import zscore
-from sklearn.impute import KNNImputer
-from bs_lib.bs_eda import get_numerical_columns, get_categorical_columns, train_val_test_split
+
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer,KNNImputer
+from bs_lib.bs_eda import load_csv,load_all_csv
+from bs_lib.bs_eda import get_numerical_columns, get_categorical_columns, train_val_test_split, split_by_row, load_csv_files_as_dict
 
 from joblib import dump, load
 
@@ -70,22 +74,22 @@ def get_transformer(X):
     print("\nCreating Columns transformers")
     transformer = ColumnTransformer(
         [
-            ("poly", PolynomialFeatures(degree=2,
-                                        interaction_only=False,
-                                        include_bias=False),
-             make_column_selector(dtype_include=np.number)),
+            # ("poly", PolynomialFeatures(degree=2,
+            #                             interaction_only=False,
+            #                             include_bias=False),
+            #  make_column_selector(dtype_include=np.number)),
 
-            ("mpg_discretizer", KBinsDiscretizer(n_bins=6,
-                                                 encode='onehot', strategy='uniform'), ['mpg']),
+            # ("mpg_discretizer", KBinsDiscretizer(n_bins=6,
+            #                                      encode='onehot', strategy='uniform'), ['mpg']),
 
-            ("tax_discretizer", KBinsDiscretizer(n_bins=9,
-                                                 encode='onehot', strategy='quantile'), ['tax']),
+            # ("tax_discretizer", KBinsDiscretizer(n_bins=9,
+            #                                      encode='onehot', strategy='quantile'), ['tax']),
 
-            ("engine_size_discretizer", KBinsDiscretizer(n_bins=3,
-                                                         encode='onehot', strategy='uniform'), ['engine_size']),
+            # ("engine_size_discretizer", KBinsDiscretizer(n_bins=3,
+            #                                              encode='onehot', strategy='uniform'), ['engine_size']),
 
-            ('year_pipe', Pipeline(steps=[('discretize', KBinsDiscretizer(n_bins=10, encode='ordinal', strategy='quantile'))],
-                                   verbose=True), ['year']),
+            # ('year_pipe', Pipeline(steps=[('discretize', KBinsDiscretizer(n_bins=10, encode='ordinal', strategy='quantile'))],
+            #                        verbose=True), ['year']),
 
             ('model_pipe', Pipeline(steps=[('OHE', OneHotEncoder(
                 handle_unknown='ignore'))], verbose=True), ['model']),
@@ -100,21 +104,20 @@ def get_transformer(X):
 
 
 def extract_features(data):
-    print("\nExtract Features")
     X = data.copy()
     X['age'] = X['year'].max()-X['year']
     X.loc[X['age'] < 1, 'age'] = 1
     # X.drop(['year'],axis=1,inplace=True)
     m_a = X['mileage']/X['age']
-    X['mileage_per_year'] = m_a
+    #X['mileage_per_year'] = m_a
     mpg_a = X['mpg']/X['age']
-    X['mpg_per_year'] = mpg_a
+    #X['mpg_per_year'] = mpg_a
     t_a = X['tax']/X['age']
-    X['tax_per_year'] = t_a
+    #X['tax_per_year'] = t_a
     e_a = X['engine_size']/X['age']
-    X['engine_per_year'] = e_a
+    #X['engine_per_year'] = e_a
     mmte = X['mileage']+X['mpg']+X['tax']+X['engine_size']
-    X['mpy_mpy'] = m_a/mmte+mpg_a/mmte+t_a/mmte+e_a/mmte
+    #X['mpy_mpy'] = m_a/mmte+mpg_a/mmte+t_a/mmte+e_a/mmte
     #X.drop('age',axis=1, inplace=True)
     #X['galon_per_year'] = X['mpg']/X['mileage_per_year']
     #X['galon_per_year'] = X['mileage_per_year']/X['mpg']
@@ -128,6 +131,7 @@ def extract_features(data):
 
 
 def evaluate(model, X_val, y_val):
+    print(f"\nModel Evaluation")
     y_pred = model.predict(X_val)
     rmse = np.sqrt(mean_squared_error(np.exp(y_val), np.exp(y_pred)))
     print(f"RMSE: {rmse}")
@@ -198,13 +202,13 @@ def get_features_target(data, target_name, show=False):
 
 
 def load_data(file_name, dataset_directory_path='./dataset/', callback=None, prefix='saved', show=False):
-    print(f'Loading {file_name} Dataset...')
+    print(f'\nLoading {file_name} Dataset\n...')
     saved_file_name = f"{prefix}_{file_name}"
     saved_file_path = join(dataset_directory_path, saved_file_name)
     if isfile(saved_file_path):
         data = pd.read_csv(saved_file_path, index_col=0)
         if show:
-            print(f"{file_name} already processed, {saved_file_name} loaded")
+            print(f"\t{file_name} was previously processed, {saved_file_name} reloaded")
     else:
         file_path = join(dataset_directory_path, file_name)
         data = pd.read_csv(file_path, index_col=0)
@@ -213,7 +217,7 @@ def load_data(file_name, dataset_directory_path='./dataset/', callback=None, pre
         data.to_csv(saved_file_path)
         if show:
             print(
-                f"{file_name} loaded\nA new file has been saved as '{saved_file_name}'")
+                f"\t{file_name} loaded\n\tA new backup file has been saved as '{saved_file_name}'")
     return data
 
 
@@ -228,11 +232,16 @@ def clean_variables(data):
     print("\t\tDrop duplicate")
     df.drop_duplicates(inplace=True)
     # scale
-    print("\t\tMinMax Scaling numerical feature")
+    print("\t\tScaling numerical feature")
     num_columns = get_numerical_columns(df)
+    #df['price']=df['price']/1.
+    for c in num_columns:
+        df[c] = pd.to_numeric(df[c])
     num_columns.remove('price')
     scaler = MinMaxScaler()
     df[num_columns] = scaler.fit_transform(df[num_columns])
+    std_scaler = StandardScaler(with_mean=False)
+    df[num_columns] = std_scaler.fit_transform(df[num_columns])
     # remove unhandled categories
     print("\t\tRemove unhandled categories")
     df = df[df['transmission'] != 'Other']
@@ -250,7 +259,7 @@ def nan_outliers(data):
 
 
 def outliers_transformer(data, drop=False):
-    print('\n\tTransform outliers')
+    print('\nTransform outliers')
     df = data.copy()
     columns = get_numerical_columns(df)
     columns.remove('price')
@@ -258,35 +267,36 @@ def outliers_transformer(data, drop=False):
     if drop:
         outliers = df[columns].apply(lambda x: np.abs(
             zscore(x, nan_policy='omit')) > thresh).any(axis=1)
-        print(f"\t\tDroping {outliers.shape[0]} outliers")
+        print(f"\tDroping outliers")
         df.drop(df.index[outliers], inplace=True)
     else:
         outliers = df[columns].apply(lambda x: np.abs(
             zscore(x, nan_policy='omit')) > thresh)
         # replace value from outliers by nan
         # print(outliers)
-        print(f"\t\ttagging {outliers.shape[0]} outliers")
+        print(f"\ttagging outliers")
         for c in outliers.columns.to_list():
             df.loc[outliers[c], c] = np.nan
-        print(df.info())
+        #print(df.info())
     return df
 
 
 def numerical_imputer(data, n_neighbors=10, weights='uniform'):
-    print('\n\tImput numerical outliers')
+    print('\nImput numerical missing value')
     df = data.copy()
+    #print("df",df.info())
     columns = get_numerical_columns(df)
     has_nan = df.isnull().values.any()
-    print(f"\t\t{columns} has NAN? {has_nan}")
+    print(f"\t{columns} has NAN? {has_nan}")
     if(has_nan):
-        print("\t\timputing ...")
+        print("\timputing ...")
         imputer = KNNImputer(n_neighbors=n_neighbors, weights=weights)
-        df[columns] = imputer.fit_transform(df[columns])
-        print(df)
-    # df.replace(np.inf, np.nan)
-    # df.replace(-np.inf, np.nan)
-    print("\t\tImputation done?", not df.isnull().values.any())
-    print("\t\thas inf?", df.isin([np.nan, np.inf, -np.inf]).values.any())
+        #imputer = IterativeImputer(random_state=0)
+        imputed = imputer.fit_transform(df[columns])
+        for i,c in enumerate(columns):
+            df[c]=imputed[:,i]
+        print("\thas inf?", df.isin([np.nan, np.inf, -np.inf]).values.any())
+    print("\tImputation done?", not df.isnull().values.any())
     return df
 
 
@@ -325,19 +335,22 @@ def categorical_imputer(data):
 
 
 def check_integrity(matrix):
-    for i in range(len(matrix.data)):
-        if np.isnan(matrix.data[i]):
-            print("Here it is: ", i, matrix.data[i])
-    # np.nan_to_num(matrix.data)
-    # print(type(matrix),matrix.data)
-    print("Still has nan?", np.any(np.isnan(matrix.data)))
-    print("all finite?", np.all(np.isfinite(matrix.data)))
+    matrix.data = np.nan_to_num(matrix.data)
+    # for i in range(len(matrix.data)):
+    #     if np.isnan(matrix.data[i]):
+    #         print("Here it is: ", i, matrix.data[i])
+    # # np.nan_to_num(matrix.data)
+    # # print(type(matrix),matrix.data)
+    # print("Still has nan?", np.any(np.isnan(matrix.data)))
+    # print("all finite?", np.all(np.isfinite(matrix.data)))
+    # #df.columns.to_series()[np.isinf(df).any()]
     return matrix  # data[~data.isin([np.nan, np.inf, -np.inf]).any(1)]
 
 
 if __name__ == "__main__":
     np.random.seed(1)
 
+    pd.options.mode.use_inf_as_na = True
     # print(sys.version_info)
 
     dataset_directory_path = './dataset/'
@@ -346,36 +359,44 @@ if __name__ == "__main__":
     train_set_file = 'train_set.csv'
     val_set_file = 'val_set.csv'
     prefix = 'prepared'
-
+    path_to_files = join(dataset_directory_path, prefix)
+    
     all_data = load_data(all_data_file, dataset_directory_path,
-                         callback=[clean_variables, nan_outliers],
+                         callback=[clean_variables],
                          prefix=prefix, show=True)
-
-    X, y = get_features_target(all_data, target_name='price', show=True)
-
-    X_train, X_val, X_test, y_train, y_val, Y_test = train_val_test_split(X=X,
-                                                                          y=y,
-                                                                          train_size=.75,
-                                                                          val_size=.15,
-                                                                          test_size=.1,
-                                                                          random_state=1,
-                                                                          show=True,
-                                                                          export=True,
-                                                                          directory_path=dataset_directory_path)
-    # *** Modify train_set for training *** #
-    X_train_filename = 'X_train.csv'
-    X_train_file = f"{prefix}_{X_train_filename}"
-    X_train_file_path = join(dataset_directory_path, X_train_file)
-    if isfile(X_train_file_path):
-        # print(X_train_file_path)
-        X_train = load_data(file_name=X_train_filename,
-                            dataset_directory_path=dataset_directory_path,
-                            prefix=prefix)
-        # print(X_train.info())
+    
+    #all_data = nan_outliers(all_data)
+    #all_data = numerical_imputer(all_data, n_neighbors=50, weights='distance')
+    
+    all_filename = ['X_train.csv','X_val.csv','X_test.csv','y_train.csv','y_val.csv','y_test.csv']
+    if isfile(join(path_to_files,f"{all_filename[0]}")):
+        all_files = load_all_csv(path_to_files, index=0)
+        X_train = all_files["x_train"]
+        X_val = all_files["x_val"]
+        X_test = all_files["x_test"]
+        y_train = all_files["y_train"]
+        y_val = all_files["y_val"]
+        y_test = all_files["y_test"]
     else:
-        X_train = numerical_imputer(
-            X_train, n_neighbors=25, weights='distance')
-        X_train.to_csv(X_train_file_path)
+        print("\nSplitting into train, val and test sets")
+        train_set, test_set = split_by_row(all_data, .8)
+        
+        # *** Modify train_set for training *** #
+        train_set = nan_outliers(train_set)
+        train_set = numerical_imputer(train_set, n_neighbors=100, weights='distance')
+        
+        X_train_val, y_train_val = get_features_target(train_set, target_name='price', show=True)
+        X_test, y_test = get_features_target(test_set, target_name='price', show=True)
+        
+        X_train, X_val, y_train, y_val = train_test_split(X_train_val,y_train_val,train_size=.85,random_state=1)
+        print(f"\tX_train: {X_train.shape}\n\tX_val: {X_val.shape}\n\tX_test: {X_test.shape}\n\ty_train: {y_train.shape}\n\ty_val: {y_val.shape}\n\ty_test: {y_test.shape}")
+
+        X_train.to_csv(join(path_to_files,"X_train.csv"))
+        y_train.to_csv(join(path_to_files,"y_train.csv"))
+        X_val.to_csv(join(path_to_files,"X_val.csv"))
+        y_val.to_csv(join(path_to_files,"y_val.csv"))
+        X_test.to_csv(join(path_to_files,"X_test.csv"))
+        y_test.to_csv(join(path_to_files,"y_test.csv"))
 
     transformer = get_transformer(X_train)
 
@@ -384,33 +405,37 @@ if __name__ == "__main__":
     # #print(X_.info())
 
     # if model not already exists:
-    model_name = 'RFR_1829'
-    model_filename = f'{model_name}.joblib'
-    model_path = join(model_directory_path, model_filename)
-    nb_estimators = 100
-    if isfile(model_path):
-        model = load(model_path)
-        # print(model)
+    temp_model_name = 'temp_model'
+    temp_model_filename = f'{temp_model_name}.joblib'
+    temp_model_path = join(model_directory_path, temp_model_filename)
+    nb_estimators = 10
+    model_to_load =''#'model_10_1937.8390856038359.joblib'
+    model_to_load_path = join(model_directory_path,model_to_load)
+    if isfile(model_to_load_path):
+       model = load(model_to_load_path)
+       # print(model)
     else:
-        # pipeline: predict preprocessing
+    #pipeline: predict preprocessing
         steps = [
             ("features_extraction", FunctionTransformer(
                 extract_features, validate=False)),
             ("transformer", transformer),
-            ("scaler", StandardScaler(with_mean=False)),
-            # ("MinMax", MaxAbsScaler()),
             #("check integrity",FunctionTransformer(check_integrity)),
             ("random_forest", RandomForestRegressor(
                 n_estimators=nb_estimators,
                 max_features='auto',
                 min_samples_split=6,
                 max_depth=50,
-                n_jobs=-1, verbose=True, warm_start=True))
+                n_jobs=-1, 
+                #warm_start=True, #Optimise computation during GridSearchCV
+                verbose=True
+                ))
         ]
         model = Pipeline(steps=steps, verbose=True)
 
+        print("\nTraining the model")
         model.fit(X_train, y_train)
-        dump(model, model_path)
+        dump(model, temp_model_path)
 
     param_grid = {
         'random_forest__max_depth': [40, 50, 100],
@@ -460,9 +485,12 @@ if __name__ == "__main__":
     # model = get_best_estimator(
     #     model, param_grid, X_train, y_train, scoring=mse)
     # dump(model, model_path)
-
-    evaluate(model, X_val, y_val)
-
+    print(X_val.isna().any())
+    y_pred,y_val,rmse = evaluate(model, X_val, y_val)
+    model_name = f'model_{nb_estimators}_{rmse}'
+    model_filename = f'{model_name}.joblib'
+    model_path = join(model_directory_path, model_filename)
+    rename(temp_model_path, model_path)
     #RMSE: 1829.6801093112176
 
     # RMSE: 908.2924800638677
