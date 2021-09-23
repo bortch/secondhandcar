@@ -134,7 +134,10 @@ def evaluate(model, X_val, y_val):
     return np.exp(y_pred), np.exp(y_val), rmse
 
 
-def evaluate_prediction(model, X_val, y_val):
+def evaluate_prediction(model, X_val, y_val, sample = None):
+    if sample: 
+        X_val = X_val.sample(n=sample, random_state=1)
+        y_val = y_val.sample(n=sample, random_state=1)
     y_pred = model.predict(X_val)
     rmse = np.sqrt(mean_squared_error(np.exp(y_val), np.exp(y_pred)))
     print(f"RMSE: {rmse}")
@@ -142,19 +145,22 @@ def evaluate_prediction(model, X_val, y_val):
     y_val = np.exp(y_val)
 
     data = []
+
     for i in range(len(y_pred)):
         row = []
         pred = y_pred[i:i+1][0]
         real = int(y_val[i:i+1].values[0])
-        error = np.abs(real-pred)
+        error = np.abs((real-pred))
+        percentage = error/real*100
         row.append(f"{pred:.0f}")
-        row.append(f"{real}")
-        row.append(f"{error}")
+        row.append(f"{real:.0f}")
+        row.append(f"{error:.0f}")
+        row.append(f"{percentage:.0f} %")
         data.append(row)
-    table = terminal.create_table(title="Prediction",
-                                  columns=['Prediction','Real Price','Error'],
+    table = terminal.create_table(title="Prediction results",
+                                  columns=['Prediction','Real Price','Error', 'Percentage'],
                                   data=data)
-    terminal.article(title="Model Evaluation", content=table)
+    terminal.article(title="Model Prediction testing", content=table)
 
 
 def fit_evaluate(model, X_train, y_train, X_val, y_val):
