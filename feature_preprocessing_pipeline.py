@@ -74,10 +74,10 @@ def get_transformer(X):
     print("\nCreating Columns transformers")
     transformer = ColumnTransformer(
         [
-            # ("poly", PolynomialFeatures(degree=2,
-            #                             interaction_only=False,
-            #                             include_bias=False),
-            #  make_column_selector(dtype_include=np.number)),
+            ("poly", PolynomialFeatures(degree=2,
+                                        interaction_only=False,
+                                        include_bias=False),
+             make_column_selector(dtype_include=np.number)),
 
             # ("mpg_discretizer", KBinsDiscretizer(n_bins=6,
             #                                      encode='onehot', strategy='uniform'), ['mpg']),
@@ -108,15 +108,15 @@ def extract_features(data):
     X['age'] = X['year'].max()-X['year']
     X.loc[X['age'] < 1, 'age'] = 1
     # X.drop(['year'],axis=1,inplace=True)
-    m_a = X['mileage']/X['age']
+    # m_a = X['mileage']/X['age']
     #X['mileage_per_year'] = m_a
-    mpg_a = X['mpg']/X['age']
+    # mpg_a = X['mpg']/X['age']
     #X['mpg_per_year'] = mpg_a
-    t_a = X['tax']/X['age']
+    # t_a = X['tax']/X['age']
     #X['tax_per_year'] = t_a
-    e_a = X['engine_size']/X['age']
+    # e_a = X['engine_size']/X['age']
     #X['engine_per_year'] = e_a
-    mmte = X['mileage']+X['mpg']+X['tax']+X['engine_size']
+    # mmte = X['mileage']+X['mpg']+X['tax']+X['engine_size']
     #X['mpy_mpy'] = m_a/mmte+mpg_a/mmte+t_a/mmte+e_a/mmte
     #X.drop('age',axis=1, inplace=True)
     #X['galon_per_year'] = X['mpg']/X['mileage_per_year']
@@ -126,7 +126,7 @@ def extract_features(data):
     #X['tax_per_mileage'] = X['mileage']/X['tax']
     #X['litre_per_mileage'] = X['engine_size']/X['mileage']
     #X['litre_per_mileage'] = X['mileage']/X['engine_size']
-    # X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
+    #X['litre_per_galon'] = X['engine_size']/X['galon_per_year']
     return X
 
 
@@ -374,9 +374,9 @@ if __name__ == "__main__":
         X_train = all_files["x_train"]
         X_val = all_files["x_val"]
         X_test = all_files["x_test"]
-        y_train = all_files["y_train"]
-        y_val = all_files["y_val"]
-        y_test = all_files["y_test"]
+        y_train = all_files["y_train"].values.ravel()
+        y_val = all_files["y_val"].values.ravel()
+        y_test = all_files["y_test"].values.ravel()
     else:
         print("\nSplitting into train, val and test sets")
         train_set, test_set = split_by_row(all_data, .8)
@@ -433,64 +433,64 @@ if __name__ == "__main__":
         ]
         model = Pipeline(steps=steps, verbose=True)
 
-        print("\nTraining the model")
-        model.fit(X_train, y_train)
-        dump(model, temp_model_path)
+        # print("\nTraining the model")
+        # model.fit(X_train, y_train)
+        # dump(model, temp_model_path)
 
     param_grid = {
-        'random_forest__max_depth': [40, 50, 100],
-        'random_forest__min_samples_split': np.arange(2, 8, 2),
-        'random_forest__max_features': ['auto', 'sqrt', 'log2', None],
+        # 'random_forest__max_depth': [40, 50, 100],
+        # 'random_forest__min_samples_split': np.arange(2, 8, 2),
+        # 'random_forest__max_features': ['auto', 'sqrt', 'log2', None],
         # {'random_forest__max_depth': 50,
         # 'random_forest__max_features': 'auto',
         # 'random_forest__min_samples_split': 6}
 
-        'transformer__poly__degree': [2, 3],
+        'transformer__poly__degree': [1,2, 3, 4],
         'transformer__poly__interaction_only': [True, False],
         'transformer__poly__include_bias': [True, False],
         #   {'transformer__poly__degree': 2,
         #   'transformer__poly__include_bias': False,
         #   'transformer__poly__interaction_only': False}
 
-        'transformer__mpg_discretizer__n_bins': [5, 6, 10, 13],
-        'transformer__mpg_discretizer__encode': ['onehot', 'ordinal'],
-        'transformer__mpg_discretizer__strategy': ['uniform', 'quantile', 'kmeans'],
+        # 'transformer__mpg_discretizer__n_bins': [5, 6, 10, 13],
+        # 'transformer__mpg_discretizer__encode': ['onehot', 'ordinal'],
+        # 'transformer__mpg_discretizer__strategy': ['uniform', 'quantile', 'kmeans'],
         #   {'transformer__mpg_discretizer__encode': 'onehot',
         #   'transformer__mpg_discretizer__n_bins': 6,
         #   'transformer__mpg_discretizer__strategy': 'uniform'}
 
-        'transformer__tax_discretizer__n_bins': [7, 8, 9, 10],
-        'transformer__tax_discretizer__encode': ['onehot', 'ordinal'],
-        'transformer__tax_discretizer__strategy': ['uniform', 'quantile', 'kmeans'],
+        # 'transformer__tax_discretizer__n_bins': [7, 8, 9, 10],
+        # 'transformer__tax_discretizer__encode': ['onehot', 'ordinal'],
+        # 'transformer__tax_discretizer__strategy': ['uniform', 'quantile', 'kmeans'],
         #   {'transformer__tax_discretizer__encode': 'onehot',
         #   'transformer__tax_discretizer__n_bins': 9, '
         #   transformer__tax_discretizer__strategy': 'quantile'}
 
-        'transformer__engine_size_discretizer__n_bins': [2, 3, 4, 6, 9],
-        'transformer__engine_size_discretizer__encode': ['onehot', 'ordinal'],
-        'transformer__engine_size_discretizer__strategy': ['uniform', 'quantile', 'kmeans'],
+        # 'transformer__engine_size_discretizer__n_bins': [2, 3, 4, 6, 9],
+        # 'transformer__engine_size_discretizer__encode': ['onehot', 'ordinal'],
+        # 'transformer__engine_size_discretizer__strategy': ['uniform', 'quantile', 'kmeans'],
         #   {'transformer__engine_size_discretizer__encode': 'onehot',
         #   'transformer__engine_size_discretizer__n_bins': 3,
         #   'transformer__engine_size_discretizer__strategy': 'uniform'}
 
-        'transformer__year_pipe__discretize__n_bins': [3, 6, 9, 11],
-        'transformer__year_pipe__discretize__encode': ['onehot', 'ordinal'],
-        'transformer__year_pipe__discretize__strategy': ['uniform', 'quantile', 'kmeans']
+        # 'transformer__year_pipe__discretize__n_bins': [3, 6, 9, 11],
+        # 'transformer__year_pipe__discretize__encode': ['onehot', 'ordinal'],
+        # 'transformer__year_pipe__discretize__strategy': ['uniform', 'quantile', 'kmeans']
         #   {'transformer__year_pipe__discretize__encode': 'onehot',
         #   'transformer__year_pipe__discretize__n_bins': 11,
         #   'transformer__year_pipe__discretize__strategy': 'uniform'}
     }
     # *** GridSearchCV ***#
-    # mse = make_scorer(mean_squared_error, greater_is_better=False)
-    # model = get_best_estimator(
-    #     model, param_grid, X_train, y_train, scoring=mse)
+    mse = make_scorer(mean_squared_error, greater_is_better=False)
+    model = get_best_estimator(
+        model, param_grid, X_train, y_train, scoring=mse)
     # dump(model, model_path)
-    print(X_val.isna().any())
+    # print(X_val.isna().any())
     y_pred,y_val,rmse = evaluate(model, X_val, y_val)
-    model_name = f'model_{nb_estimators}_{rmse}'
-    model_filename = f'{model_name}.joblib'
-    model_path = join(model_directory_path, model_filename)
-    rename(temp_model_path, model_path)
+    # model_name = f'model_{nb_estimators}_{rmse}'
+    # model_filename = f'{model_name}.joblib'
+    # model_path = join(model_directory_path, model_filename)
+    # rename(temp_model_path, model_path)
     #RMSE: 1829.6801093112176
 
     # RMSE: 908.2924800638677
