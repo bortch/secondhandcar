@@ -158,8 +158,7 @@ def evaluate_prediction(model, X_val, y_val):
     table = terminal.create_table(title="Prediction",
                                   columns=columns,
                                   data=data)
-    content = terminal.parse_content(table)
-    terminal.article(title="Model Evaluation", content=content)
+    terminal.article(title="Model Evaluation", content=table)
 
 
 def fit_evaluate(model, X_train, y_train, X_val, y_val):
