@@ -74,10 +74,10 @@ def get_transformer(X):
     print("\nCreating Columns transformers")
     transformer = ColumnTransformer(
         [
-            ("poly", PolynomialFeatures(degree=2,
-                                        interaction_only=False,
-                                        include_bias=False),
-             make_column_selector(dtype_include=np.number)),
+            # ("poly", PolynomialFeatures(degree=2,
+            #                             interaction_only=False,
+            #                             include_bias=False),
+            #  make_column_selector(dtype_include=np.number)),
 
             # ("mpg_discretizer", KBinsDiscretizer(n_bins=6,
             #                                      encode='onehot', strategy='uniform'), ['mpg']),
@@ -281,7 +281,7 @@ def outliers_transformer(data, drop=False):
     return df
 
 
-def numerical_imputer(data, n_neighbors=10, weights='uniform'):
+def numerical_imputer(data, n_neighbors=10, weights='distance', fit_set=None, imputer_type=None):
     print('\nImput numerical missing value')
     df = data.copy()
     #print("df",df.info())
@@ -289,13 +289,22 @@ def numerical_imputer(data, n_neighbors=10, weights='uniform'):
     has_nan = df.isnull().values.any()
     print(f"\t{columns} has NAN? {has_nan}")
     if(has_nan):
-        print("\timputing ...")
-        imputer = KNNImputer(n_neighbors=n_neighbors, weights=weights)
-        #imputer = IterativeImputer(random_state=0)
-        imputed = imputer.fit_transform(df[columns])
+        print("\tNAN found, imputing ...")
+        if imputer_type=='KNN':
+            print('\tusing KNNImputer')
+            imputer = KNNImputer(n_neighbors=n_neighbors, weights=weights)
+        else:
+            print('\tUsing IterativeImputer')
+            imputer = IterativeImputer(random_state=0)
+        if isinstance(fit_set, pd.DataFrame):
+            print('\tfit imputer using fit_set:',fit_set.shape)
+            imputer.fit(fit_set[columns])
+            imputed = imputer.transform(df[columns])            
+        else:
+            imputed = imputer.fit_transform(df[columns])
         for i,c in enumerate(columns):
             df[c]=imputed[:,i]
-        print("\thas inf?", df.isin([np.nan, np.inf, -np.inf]).values.any())
+        #print("\thas inf?", df.isin([np.nan, np.inf, -np.inf]).values.any())
     print("\tImputation done?", not df.isnull().values.any())
     return df
 
@@ -364,7 +373,10 @@ if __name__ == "__main__":
     all_data = load_data(all_data_file, dataset_directory_path,
                          callback=[clean_variables],
                          prefix=prefix, show=True)
+    # Drop all outliers
+    all_data = drop_outliers(all_data)
     
+    # Mark and impute all outliers
     #all_data = nan_outliers(all_data)
     #all_data = numerical_imputer(all_data, n_neighbors=50, weights='distance')
     
@@ -382,8 +394,11 @@ if __name__ == "__main__":
         train_set, test_set = split_by_row(all_data, .8)
         
         # *** Modify train_set for training *** #
+        # Imputing
         train_set = nan_outliers(train_set)
-        train_set = numerical_imputer(train_set, n_neighbors=100, weights='distance')
+        train_set = numerical_imputer(train_set, n_neighbors=100, weights='distance',fit_set=all_data, imputer_type='KNN')
+        # Droping
+        # train_set = drop_outliers(train_set)
         
         X_train_val, y_train_val = get_features_target(train_set, target_name='price', show=True)
         X_test, y_test = get_features_target(test_set, target_name='price', show=True)
@@ -417,8 +432,8 @@ if __name__ == "__main__":
     else:
     #pipeline: predict preprocessing
         steps = [
-            ("features_extraction", FunctionTransformer(
-                extract_features, validate=False)),
+            # ("features_extraction", FunctionTransformer(
+            #     extract_features, validate=False)),
             ("transformer", transformer),
             #("check integrity",FunctionTransformer(check_integrity)),
             ("random_forest", RandomForestRegressor(
@@ -433,9 +448,9 @@ if __name__ == "__main__":
         ]
         model = Pipeline(steps=steps, verbose=True)
 
-        # print("\nTraining the model")
-        # model.fit(X_train, y_train)
-        # dump(model, temp_model_path)
+        print("\nTraining the model")
+        model.fit(X_train, y_train)
+        dump(model, temp_model_path)
 
     param_grid = {
         # 'random_forest__max_depth': [40, 50, 100],
@@ -445,9 +460,9 @@ if __name__ == "__main__":
         # 'random_forest__max_features': 'auto',
         # 'random_forest__min_samples_split': 6}
 
-        'transformer__poly__degree': [1,2, 3, 4],
-        'transformer__poly__interaction_only': [True, False],
-        'transformer__poly__include_bias': [True, False],
+        # 'transformer__poly__degree': [1,2, 3, 4],
+        # 'transformer__poly__interaction_only': [True, False],
+        # 'transformer__poly__include_bias': [True, False],
         #   {'transformer__poly__degree': 2,
         #   'transformer__poly__include_bias': False,
         #   'transformer__poly__interaction_only': False}
@@ -481,16 +496,17 @@ if __name__ == "__main__":
         #   'transformer__year_pipe__discretize__strategy': 'uniform'}
     }
     # *** GridSearchCV ***#
-    mse = make_scorer(mean_squared_error, greater_is_better=False)
-    model = get_best_estimator(
-        model, param_grid, X_train, y_train, scoring=mse)
+    # mse = make_scorer(mean_squared_error, greater_is_better=False)
+    # model = get_best_estimator(
+    #     model, param_grid, X_train, y_train, scoring=mse)
     # dump(model, model_path)
     # print(X_val.isna().any())
     y_pred,y_val,rmse = evaluate(model, X_val, y_val)
-    # model_name = f'model_{nb_estimators}_{rmse}'
-    # model_filename = f'{model_name}.joblib'
-    # model_path = join(model_directory_path, model_filename)
-    # rename(temp_model_path, model_path)
+    model_name = f'model_{nb_estimators}_{rmse}'
+    model_filename = f'{model_name}.joblib'
+    model_path = join(model_directory_path, model_filename)
+    rename(temp_model_path, model_path)
+    
     #RMSE: 1829.6801093112176
 
     # RMSE: 908.2924800638677
