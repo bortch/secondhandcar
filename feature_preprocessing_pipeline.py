@@ -105,9 +105,18 @@ def get_transformer(X):
 
 def extract_features(data):
     X = data.copy()
-    X['age'] = X['year'].max()-X['year']
-    X.loc[X['age'] < 1, 'age'] = 1
+    
+    # drop testing
+    # ['year', 'price', 'mileage', 'tax', 'mpg', 'engine_size']
     # X.drop(['year'],axis=1,inplace=True)
+    # X.drop(['tax'],axis=1,inplace=True)
+    # X.drop(['mileage'],axis=1,inplace=True)
+    # X.drop(['mpg'],axis=1,inplace=True)
+    # X.drop(['engine_size'],axis=1,inplace=True)
+    
+    # adding feature
+    # X['age'] = X['year'].max()-X['year']
+    # X.loc[X['age'] < 1, 'age'] = 1
     # m_a = X['mileage']/X['age']
     #X['mileage_per_year'] = m_a
     # mpg_a = X['mpg']/X['age']
@@ -432,8 +441,7 @@ if __name__ == "__main__":
     else:
     #pipeline: predict preprocessing
         steps = [
-            # ("features_extraction", FunctionTransformer(
-            #     extract_features, validate=False)),
+            ("features_extraction", FunctionTransformer(extract_features, validate=False)),
             ("transformer", transformer),
             #("check integrity",FunctionTransformer(check_integrity)),
             ("random_forest", RandomForestRegressor(
