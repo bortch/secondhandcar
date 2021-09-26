@@ -1,5 +1,6 @@
 # coding=utf-8
 
+from pandas.core.indexes import category
 from bs_lib.bs_eda import get_categorical_columns
 import sys
 from os import rename
@@ -37,6 +38,7 @@ from bs_lib.bs_eda import train_val_test_split
 
 from joblib import dump, load
 
+
 def get_transformer(transformers=[], verbose=False):
     print("\nCreating Columns transformers")
     transformers_ = [
@@ -45,31 +47,39 @@ def get_transformer(transformers=[], verbose=False):
         #                             include_bias=False),
         #  make_column_selector(dtype_include=np.number)),
 
-        ("mpg_discretizer", KBinsDiscretizer(n_bins=6,
-                                             encode='onehot', strategy='uniform'), ['mpg']),
+        ("mpg_pipe", Pipeline(steps=[
+            ('discretize', KBinsDiscretizer(n_bins=6,
+                                            encode='onehot', strategy='uniform'))
+        ], verbose=verbose), ['mpg']),
 
         # ("tax_discretizer", KBinsDiscretizer(n_bins=9,
         #                                      encode='onehot', strategy='quantile'), ['tax']),
 
-        ("engine_size_discretizer", KBinsDiscretizer(n_bins=3,
-                                                     encode='onehot', strategy='uniform'), ['engine_size']),
+        ("engine_size_pipe", Pipeline(steps=[
+            ('discretize',  KBinsDiscretizer(n_bins=3,
+                                             encode='onehot', strategy='uniform'))
+        ], verbose=verbose), ['engine_size']),
 
         ('year_pipe', Pipeline(steps=[
-            ('discretize', KBinsDiscretizer(n_bins=10, encode='ordinal', strategy='quantile'))
-        ], verbose=True), ['year']),
-        
+            ('discretize', KBinsDiscretizer(
+                n_bins=10, encode='ordinal', strategy='quantile'))
+        ], verbose=verbose), ['year']),
+
         ('model_pipe', Pipeline(steps=[
-            ('OHE', OneHotEncoder(handle_unknown='ignore', sparse=False)),
-            ('OE',OrdinalEncoder())
+            #('OHE', OneHotEncoder(handle_unknown='ignore', sparse=False)),
+            ('OE', OrdinalEncoder())
         ], verbose=verbose), ['model']),
+        
         ('brand_pipe', Pipeline(steps=[
             ('OHE', OneHotEncoder(handle_unknown='ignore'))
         ], verbose=verbose), ['brand']),
+        
         ('transmission_pipe', Pipeline(steps=[
             ('OHE', OneHotEncoder(handle_unknown='ignore'))
         ], verbose=verbose), ['transmission']),
         ('fuel_type_pipe', Pipeline(steps=[
-            ('OHE', OneHotEncoder(handle_unknown='ignore'))
+            #('OHE', OneHotEncoder(handle_unknown='ignore'))
+            ('OE', OrdinalEncoder())
         ], verbose=verbose), ['fuel_type'])
     ]
     if transformers:
@@ -92,20 +102,24 @@ def extract_features(data):
     # X.drop(['mileage'],axis=1,inplace=True)
     # X.drop(['mpg'],axis=1,inplace=True)
     # X.drop(['engine_size'],axis=1,inplace=True)
+    #X.drop(['brand'],axis=1,inplace=True)
 
+    X['model_count'] = X.groupby('model')['model'].transform('count')
+
+    occ = X['model_count']/X.shape[0]
     # adding feature
     X['age'] = X['year'].max()-X['year']
     X.loc[X['age'] < 1, 'age'] = 1
     m_a = X['mileage']/X['age']
-    X['mileage_per_year'] = m_a
+    # X['mileage_per_year'] = m_a
     mpg_a = X['mpg']/X['age']
-    X['mpg_per_year'] = mpg_a
+    # X['mpg_per_year'] = mpg_a
     t_a = X['tax']/X['age']
     X['tax_per_year'] = t_a
     e_a = X['engine_size']/X['age']
-    X['engine_per_year'] = e_a
-    mmte = X['mileage']+X['mpg']+X['tax']+X['engine_size']
-    X['mpy_mpy'] = m_a/mmte+mpg_a/mmte+t_a/mmte+e_a/mmte
+    #X['engine_per_year'] = e_a
+    mmte = (X['mileage']+X['mpg']+X['tax']+X['engine_size'])/occ
+    X['mpy_mpy'] = (m_a/mmte+mpg_a/mmte+t_a/mmte+e_a/mmte)
     #X.drop('age',axis=1, inplace=True)
     #X['galon_per_year'] = X['mpg']/X['mileage_per_year']
     #X['galon_per_year'] = X['mileage_per_year']/X['mpg']
@@ -225,6 +239,7 @@ def get_all_models(files_directory, target, dump_model=False, model_directory=''
 
     for brand, df in all_df.items():
         df_target = df[target]
+        categories = get_ordered_categories(df, by='price')
         df = df.drop(target, axis=1)
         X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X=df,
                                                                               y=df_target,
@@ -233,7 +248,14 @@ def get_all_models(files_directory, target, dump_model=False, model_directory=''
                                                                               test_size=.1,
                                                                               random_state=1,
                                                                               show=verbose)
+
         model = get_model()
+        model.set_params(**{
+            "transformer__model_pipe__OE__categories": [categories['model']],
+            "transformer__brand_pipe__OHE__categories": [categories['brand']],
+            "transformer__transmission_pipe__OHE__categories": [categories['transmission']],
+            "transformer__fuel_type_pipe__OE__categories": [categories['fuel_type']],
+        })
         print(f"\nTraining the model for {brand}")
         model.fit(X_train, y_train)
         model_path = '-'
@@ -261,19 +283,47 @@ def get_all_models(files_directory, target, dump_model=False, model_directory=''
     return report
 
 
+def get_ordered_categories(df, by):
+    categories = {}
+    columns = get_categorical_columns(df)
+    for cat in columns:
+        ordered_df = df[[cat, by]]
+        ordered_df = ordered_df.groupby(cat).agg('mean').reset_index()
+        ordered_df.sort_values(
+            by, ascending=True, inplace=True, ignore_index=True)
+        categories[cat] = ordered_df[cat].values
+        #print(categories[cat])
+    return categories
+
+
 def get_all_categories(all_df):
     categories = {}
     for brand, df in all_df.items():
         columns = get_categorical_columns(df)
-        for c in columns:
-            if c in categories:
-                temp = np.concatenate(
-                    (categories[c], df[c].unique()), axis=None)
-                categories[c] = np.unique(temp)
+        for cat in columns:
+            # keep data to sort
+            ordered_df = df[[cat, 'price']]
+            # for current brand get aggregated mean by category
+            ordered_df = ordered_df.groupby(cat).agg('mean').reset_index()
+            # memoize result in categories object
+            if cat in categories:
+                # append new result to all results by category (all brand merged)
+                categories[cat] = categories[cat].append(
+                    [categories[cat], ordered_df], ignore_index=True)
+                # recompute mean and aggregate for each category
+                categories[cat] = categories[cat].groupby(
+                    cat).agg('mean').reset_index()
             else:
-                categories[c] = df[c].unique()
-    print(categories)
-    return categories
+                categories[cat] = ordered_df
+
+    results = {}  # ordered results
+    for cat, df in categories.items():
+        # sort each categories
+        df.sort_values("price", ascending=True,
+                       inplace=True, ignore_index=True)
+        results[cat] = df[cat].values
+        # print(results[cat])
+    return results
 
 
 def get_one_model_for_all(files_directory, target, dump_model=False, model_directory='', verbose=False):
@@ -283,10 +333,10 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
 
     model = get_model(warm_start=True)
     model.set_params(**{
-        "transformer__model_pipe__OHE__categories": [categories_dict['model']],
+        "transformer__model_pipe__OE__categories": [categories_dict['model']],
         "transformer__brand_pipe__OHE__categories": [categories_dict['brand']],
         "transformer__transmission_pipe__OHE__categories": [categories_dict['transmission']],
-        "transformer__fuel_type_pipe__OHE__categories": [categories_dict['fuel_type']],
+        "transformer__fuel_type_pipe__OE__categories": [categories_dict['fuel_type']],
     })
     if dump_model:
         temp_model_name = f'temp_all_brand_model'
@@ -355,12 +405,12 @@ if __name__ == "__main__":
     train_set_file = 'train_set.csv'
     val_set_file = 'val_set.csv'
 
-    # evaluations = get_all_models(files_directory, target='price', verbose=False)
-    # print_performance(evaluations)
+    evaluations = get_all_models(files_directory, target='price', verbose=False)
+    print_performance(evaluations)
 
-    ofa_evaluations = get_one_model_for_all(
-        files_directory, target='price', verbose=False)
-    print_performance(ofa_evaluations)
+    # ofa_evaluations = get_one_model_for_all(
+    #     files_directory, target='price', verbose=False)
+    # print_performance(ofa_evaluations)
 
     param_grid = {
         # 'random_forest__max_depth': [40, 50, 100],
