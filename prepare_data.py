@@ -1,4 +1,4 @@
-from os.path import join
+from os.path import join,isfile
 import pandas as pd
 import numpy as np
 from bs_lib.bs_eda import load_all_csv
@@ -102,9 +102,28 @@ def numerical_imputer(data, n_neighbors=10, weights='distance', fit_set=None, im
     print("\tImputation done?", not df.isnull().values.any())
     return df
 
+def save_prepared_file(df, filename):
+    current_directory = "."
+    dataset_directory = "dataset"
+    dest_directory = join(current_directory,dataset_directory,'prepared_data')
+    dest_file_path = join(dest_directory,filename)
+    df.to_csv(dest_file_path)
+    print(f"{filename} data saved @ {dest_file_path}")
+
+def load_prepared_file(filename):
+    current_directory = "."
+    dataset_directory = "dataset"
+    source_directory = join(current_directory,dataset_directory,'prepared_data')
+    file_path = join(source_directory,filename)
+    if isfile(file_path):
+        print(f"Loading {file_path}")
+        return pd.read_csv(file_path, index_col=0)
+    else:
+        return None
+    
 
 if __name__ == "__main__":
-    file_to_exclude = []
+    file_to_exclude = ['all_set.csv']
     current_directory = "."
     dataset_directory = "dataset"
     file_directory = join(current_directory,dataset_directory,'file_processed')
@@ -130,6 +149,4 @@ if __name__ == "__main__":
         _df = nan_outliers(_df)
         _df = numerical_imputer(_df, n_neighbors=10,weights='distance', imputer_type='KNN')
 
-        dest_file_path = join(dest_directory,f'{brand}.csv')
-        _df.to_csv(dest_file_path)
-        print(f"{brand} data saved @ {dest_file_path}")
+        save_prepared_file(_df,filename=brand)

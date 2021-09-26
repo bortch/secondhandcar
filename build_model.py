@@ -34,7 +34,7 @@ import bs_lib.bs_preprocess_lib as bsp
 import bs_lib.bs_terminal as terminal
 
 from bs_lib.bs_eda import load_csv, load_all_csv
-from bs_lib.bs_eda import train_val_test_split
+from bs_lib.bs_eda import train_val_test_split, get_ordered_categories
 
 from joblib import dump, load
 
@@ -281,20 +281,6 @@ def get_all_models(files_directory, target, dump_model=False, model_directory=''
                        model_path])
 
     return report
-
-
-def get_ordered_categories(df, by):
-    categories = {}
-    columns = get_categorical_columns(df)
-    for cat in columns:
-        ordered_df = df[[cat, by]]
-        ordered_df = ordered_df.groupby(cat).agg('mean').reset_index()
-        ordered_df.sort_values(
-            by, ascending=True, inplace=True, ignore_index=True)
-        categories[cat] = ordered_df[cat].values
-        #print(categories[cat])
-    return categories
-
 
 def get_all_categories(all_df):
     categories = {}
