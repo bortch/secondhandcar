@@ -1,4 +1,6 @@
 # coding=utf-8
+import warnings
+warnings.filterwarnings('ignore')
 
 from pandas.core.indexes import category
 from bs_lib.bs_eda import get_categorical_columns
@@ -8,24 +10,20 @@ from os.path import join, isfile
 from matplotlib.pyplot import title
 import numpy as np
 import pandas as pd
-from pandas.core.arrays import sparse
 import bs_lib.bs_terminal as terminal
-
-from sklearn.model_selection import GridSearchCV
 
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.compose import make_column_selector
 
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, LabelEncoder
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, MaxAbsScaler
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 
 from sklearn.preprocessing import KBinsDiscretizer
 
 from sklearn.ensemble import RandomForestRegressor
 
-from sklearn.metrics import make_scorer, mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error
 
 from sklearn.preprocessing import PolynomialFeatures
 
@@ -39,21 +37,30 @@ from bs_lib.bs_eda import train_val_test_split, get_ordered_categories
 from joblib import dump, load
 
 
-def get_transformer(transformers=[], verbose=False):
-    print("\nCreating Columns transformers")
+def get_transformer(verbose=False):
+    if verbose:
+        print("\nCreating Columns transformers")
+
+    fuel_type_pipeline = Pipeline(steps=[
+        ('OHE', OneHotEncoder(handle_unknown='ignore', sparse=False)),
+        ('OE', OrdinalEncoder()),
+    ], verbose=verbose)
+
     transformers_ = [
-        # ("poly", PolynomialFeatures(degree=2,
-        #                             interaction_only=False,
-        #                             include_bias=False),
-        #  make_column_selector(dtype_include=np.number)),
+        ("poly", PolynomialFeatures(degree=2,
+                                    interaction_only=False,
+                                    include_bias=False),
+         make_column_selector(dtype_include=np.number)),
 
         ("mpg_pipe", Pipeline(steps=[
             ('discretize', KBinsDiscretizer(n_bins=6,
                                             encode='onehot', strategy='uniform'))
         ], verbose=verbose), ['mpg']),
 
-        # ("tax_discretizer", KBinsDiscretizer(n_bins=9,
-        #                                      encode='onehot', strategy='quantile'), ['tax']),
+        ("tax_pipe", Pipeline(steps=[
+            ('discretize',  KBinsDiscretizer(n_bins=9,
+                                             encode='onehot', strategy='quantile'))
+        ], verbose=verbose), ['tax']),
 
         ("engine_size_pipe", Pipeline(steps=[
             ('discretize',  KBinsDiscretizer(n_bins=3,
@@ -66,35 +73,35 @@ def get_transformer(transformers=[], verbose=False):
         ], verbose=verbose), ['year']),
 
         ('model_pipe', Pipeline(steps=[
-            #('OHE', OneHotEncoder(handle_unknown='ignore', sparse=False)),
+            ('OHE', OneHotEncoder(handle_unknown='ignore', sparse=False)),
             ('OE', OrdinalEncoder())
         ], verbose=verbose), ['model']),
-        
+
         ('brand_pipe', Pipeline(steps=[
-            ('OHE', OneHotEncoder(handle_unknown='ignore'))
-        ], verbose=verbose), ['brand']),
-        
-        ('transmission_pipe', Pipeline(steps=[
-            ('OHE', OneHotEncoder(handle_unknown='ignore'))
-        ], verbose=verbose), ['transmission']),
-        ('fuel_type_pipe', Pipeline(steps=[
-            #('OHE', OneHotEncoder(handle_unknown='ignore'))
+            ('OHE', OneHotEncoder(handle_unknown='ignore', sparse=False)),
             ('OE', OrdinalEncoder())
-        ], verbose=verbose), ['fuel_type'])
+        ], verbose=verbose), ['brand']),
+
+        ('transmission_pipe', Pipeline(steps=[
+            ('OHE', OneHotEncoder(handle_unknown='ignore', sparse=False)),
+            ('OE', OrdinalEncoder())
+        ], verbose=verbose), ['transmission']),
+
+        ('fuel_type_pipe', fuel_type_pipeline, ['fuel_type']),
     ]
-    if transformers:
-        transformers_ = transformers_+transformers
-        print(transformers_)
 
     transformer = ColumnTransformer(
         transformers_, remainder='passthrough', verbose=verbose)
-
     return transformer
 
 
-def extract_features(data):
+def extract_features(data, features=['all']):
     X = data.copy()
-
+    if 'all' in features:
+        features = ['model_count', 'age',
+                  'mpy_mpy', 'tax_per_year',
+                  'mileage_per_year','mpg_per_year',
+                  'engine_per_year']
     # drop testing
     # ['year', 'price', 'mileage', 'tax', 'mpg', 'engine_size']
     # X.drop(['year'],axis=1,inplace=True)
@@ -102,24 +109,40 @@ def extract_features(data):
     # X.drop(['mileage'],axis=1,inplace=True)
     # X.drop(['mpg'],axis=1,inplace=True)
     # X.drop(['engine_size'],axis=1,inplace=True)
-    #X.drop(['brand'],axis=1,inplace=True)
+    # X.drop(['brand'],axis=1,inplace=True)
 
-    X['model_count'] = X.groupby('model')['model'].transform('count')
-
-    occ = X['model_count']/X.shape[0]
     # adding feature
-    X['age'] = X['year'].max()-X['year']
-    X.loc[X['age'] < 1, 'age'] = 1
-    m_a = X['mileage']/X['age']
-    # X['mileage_per_year'] = m_a
-    mpg_a = X['mpg']/X['age']
-    # X['mpg_per_year'] = mpg_a
-    t_a = X['tax']/X['age']
-    X['tax_per_year'] = t_a
-    e_a = X['engine_size']/X['age']
-    #X['engine_per_year'] = e_a
+    model_count = X.groupby('model')['model'].transform('count')
+    occ = model_count/X.shape[0]
+    if 'model_count' in features:
+        X['model_count'] = model_count
+
+    age = X['year'].max()-X['year']
+    age[age < 1] = 1
+    if 'age' in features:
+        X['age'] = age
+        #X.loc[X['age'] < 1, 'age'] = 1
+
+    m_a = X['mileage']/age
+    if 'mileage_per_year' in features:
+        X['mileage_per_year'] = m_a
+
+    mpg_a = X['mpg']/age
+    if 'mpg_per_year' in features:
+        X['mpg_per_year'] = mpg_a
+
+    t_a = X['tax']/age
+    if 'tax_per_year' in features:
+        X['tax_per_year'] = t_a
+
+    e_a = X['engine_size']/age
+    if 'engine_per_year' in features:
+        X['engine_per_year'] = e_a
+
     mmte = (X['mileage']+X['mpg']+X['tax']+X['engine_size'])/occ
-    X['mpy_mpy'] = (m_a/mmte+mpg_a/mmte+t_a/mmte+e_a/mmte)
+    if 'mpy_mpy' in features:
+        X['mpy_mpy'] = (m_a/mmte+mpg_a/mmte+t_a/mmte+e_a/mmte)
+
     #X.drop('age',axis=1, inplace=True)
     #X['galon_per_year'] = X['mpg']/X['mileage_per_year']
     #X['galon_per_year'] = X['mileage_per_year']/X['mpg']
@@ -132,11 +155,13 @@ def extract_features(data):
     return X
 
 
-def evaluate(model, X_val, y_val):
-    print(f"\nModel Evaluation")
+def evaluate(model, X_val, y_val, verbose=False):
+    if verbose:
+        print(f"\nModel Evaluation")
     y_pred = model.predict(X_val)
     rmse = np.sqrt(mean_squared_error(np.exp(y_val), np.exp(y_pred)))
-    print(f"RMSE: {rmse}")
+    if verbose:
+        print(f"RMSE: {rmse}")
     return np.exp(y_pred), np.exp(y_val), rmse
 
 
@@ -182,17 +207,6 @@ def fit_evaluate(model, X_train, y_train, X_val, y_val):
     evaluate(model, X_val, y_val)
 
 
-def get_best_estimator(model, param_grid, X, y, scoring, verbose=False):
-    grid = GridSearchCV(model, param_grid=param_grid,
-                        cv=5, scoring=scoring,
-                        verbose=verbose,
-                        n_jobs=-1, pre_dispatch=1
-                        )
-    grid.fit(X, y)
-    print(grid.best_params_)
-    return grid.best_estimator_
-
-
 def check_integrity(matrix):
     matrix.data = np.nan_to_num(matrix.data)
     # for i in range(len(matrix.data)):
@@ -205,19 +219,30 @@ def check_integrity(matrix):
     # #df.columns.to_series()[np.isinf(df).any()]
     return matrix  # data[~data.isin([np.nan, np.inf, -np.inf]).any(1)]
 
+def dump_model(model, as_filename, in_model_directory_path, verbose=False):
+    model_filename = f'{as_filename}.joblib'
+    dumped_model_path = join(in_model_directory_path, model_filename)
+    dump(model, dumped_model_path)
+    if verbose:
+        print(f"Model {as_filename} saved @ {dumped_model_path}")
+    return dumped_model_path
 
-def get_model(model_path_to_load=None, verbose=False, warm_start=False):
-    #add_transformers = get_categorical_pipeline(categories=categories)
-    transformers = get_transformer()  # (transformers=add_transformers)
+def get_model(model_path_to_load=None, verbose=False, warm_start=False, transformers=None):
+    
+    if transformers == None:
+        transformers_ = get_transformer(verbose=verbose)
+    else:
+        transformers_ = transformers
+    
     nb_estimators = 10
     if (model_path_to_load is not None) and isfile(model_path_to_load):
         model = load(model_path_to_load)
+        return model
     else:
         steps = [
             ("features_extraction", FunctionTransformer(
                 extract_features, validate=False)),
-            ("transformer", transformers),
-            #("check integrity",FunctionTransformer(check_integrity)),
+            ("transformer", transformers_),
             ("random_forest", RandomForestRegressor(
                 n_estimators=nb_estimators,
                 max_features=None,
@@ -228,7 +253,8 @@ def get_model(model_path_to_load=None, verbose=False, warm_start=False):
                 verbose=verbose
             ))
         ]
-    return Pipeline(steps=steps, verbose=verbose)
+        pipeline = Pipeline(steps=steps, verbose=verbose) 
+        return pipeline
 
 
 def get_all_models(files_directory, target, dump_model=False, model_directory='', verbose=False):
@@ -250,29 +276,70 @@ def get_all_models(files_directory, target, dump_model=False, model_directory=''
                                                                               show=verbose)
 
         model = get_model()
-        model.set_params(**{
+        params = {
+            # "features_extraction":'passthrough',
+            "features_extraction__kw_args": {'features': ["age", "tax_per_year"]},
+            # -----------
+            # numerical
+            # ___________
+            "transformer__poly": 'passthrough',
+            "transformer__mpg_pipe": 'passthrough',
+            # "transformer__tax_pipe": 'passthrough',
+            "transformer__engine_size_pipe": 'passthrough',
+            "transformer__year_pipe": 'passthrough',
+            # -------------
+            # categorical
+            # -------------
+            # *** model
+            # "transformer__model_pipe__OHE__categories": [categories['model']],
+            # "transformer__model_pipe__OE": 'passthrough',
+
+            "transformer__model_pipe__OHE": 'passthrough',
             "transformer__model_pipe__OE__categories": [categories['model']],
-            "transformer__brand_pipe__OHE__categories": [categories['brand']],
-            "transformer__transmission_pipe__OHE__categories": [categories['transmission']],
-            "transformer__fuel_type_pipe__OE__categories": [categories['fuel_type']],
-        })
+
+            # *** brand
+            # "transformer__brand_pipe__OHE__categories": [categories['brand']],
+            # "transformer__brand_pipe__OE": 'passthrough',
+
+            "transformer__brand_pipe__OHE": 'passthrough',
+            "transformer__brand_pipe__OE__categories": [categories['brand']],
+
+            # *** transmission
+            # "transformer__transmission_pipe__OHE__categories": [categories['transmission']],
+            # "transformer__transmission_pipe__OE": 'passthrough',
+
+            "transformer__transmission_pipe__OHE": 'passthrough',
+            "transformer__transmission_pipe__OE__categories": [categories['transmission']],
+
+            # *** fuel_type
+            "transformer__fuel_type_pipe__OHE__categories": [categories['fuel_type']],
+            "transformer__fuel_type_pipe__OE": 'passthrough',
+
+            # "transformer__fuel_type_pipe__OHE": 'passthrough',
+            # "transformer__fuel_type_pipe__OE__categories": [categories['fuel_type']],
+        }
+
+        #print(model.get_params().keys())
+        model.set_params(**params)
+
         print(f"\nTraining the model for {brand}")
         model.fit(X_train, y_train)
         model_path = '-'
-        if dump_model:
-            temp_model_name = f'temp_{brand}_model'
-            temp_model_filename = f'{temp_model_name}.joblib'
-            temp_model_path = join(model_directory_path, temp_model_filename)
-            dump(model, temp_model_path)
-            print(f"Model {brand}:\n")
+        # if dump_model:
+        #     temp_model_name = f'temp_{brand}_model'
+        #     temp_model_filename = f'{temp_model_name}.joblib'
+        #     temp_model_path = join(model_directory_path, temp_model_filename)
+        #     dump(model, temp_model_path)
+        #     print(f"Model {brand}:\n")
 
         y_pred, y_val, rmse = evaluate(model, X_val, y_val)
 
         if dump_model:
             model_name = f'model_{brand}_{round(rmse,0)}'
-            model_filename = f'{model_name}.joblib'
-            model_path = join(model_directory_path, model_filename)
-            rename(temp_model_path, model_path)
+            # model_filename = f'{model_name}.joblib'
+            # model_path = join(model_directory_path, model_filename)
+            # rename(temp_model_path, model_path)
+            model_path = dump_model(model, model_name, model_directory_path)
 
         report.append([brand.title(),
                        int(round(rmse, 0)),
@@ -281,6 +348,7 @@ def get_all_models(files_directory, target, dump_model=False, model_directory=''
                        model_path])
 
     return report
+
 
 def get_all_categories(all_df):
     categories = {}
@@ -307,23 +375,70 @@ def get_all_categories(all_df):
         # sort each categories
         df.sort_values("price", ascending=True,
                        inplace=True, ignore_index=True)
-        results[cat] = df[cat].values
-        # print(results[cat])
+        results[cat]=[]
+        for c in df[cat].values: 
+            results[cat].append(c)
+        #print(results[cat])
     return results
 
 
 def get_one_model_for_all(files_directory, target, dump_model=False, model_directory='', verbose=False):
-    all_df = load_all_csv(dataset_path=files_directory, index=0)
-    categories_dict = get_all_categories(all_df)
+    all_df = load_all_csv(dataset_path=files_directory, index=0,exclude=["all_set.csv"])
+    categories = get_all_categories(all_df)
     report = []
 
-    model = get_model(warm_start=True)
-    model.set_params(**{
-        "transformer__model_pipe__OE__categories": [categories_dict['model']],
-        "transformer__brand_pipe__OHE__categories": [categories_dict['brand']],
-        "transformer__transmission_pipe__OHE__categories": [categories_dict['transmission']],
-        "transformer__fuel_type_pipe__OE__categories": [categories_dict['fuel_type']],
-    })
+    model = get_model(warm_start=True, verbose=False)
+    params = {
+        # "features_extraction":'passthrough',
+        "features_extraction__kw_args": {'features': [
+                  'model_count', 
+                  #'age',
+                  'mpy_mpy', 
+                  'tax_per_year',
+                  #'mileage_per_year',
+                  #'mpg_per_year',
+                  #'engine_per_year'
+                  ]},
+        # -----------
+        # numerical
+        # ___________
+        "transformer__poly": 'passthrough',
+        # "transformer__mpg_pipe": 'passthrough',
+        "transformer__tax_pipe": 'passthrough',
+        "transformer__engine_size_pipe": 'passthrough',
+        #"transformer__year_pipe": 'passthrough',
+        # -------------
+        # categorical
+        # -------------
+        # *** model
+        # "transformer__model_pipe__OHE__categories": [categories['model']],
+        # "transformer__model_pipe__OE": 'passthrough',
+
+        "transformer__model_pipe__OHE": 'passthrough',
+        "transformer__model_pipe__OE__categories": [categories['model']],
+
+        # *** brand
+        # "transformer__brand_pipe__OHE__categories": [categories['brand']],
+        # "transformer__brand_pipe__OE": 'passthrough',
+
+        "transformer__brand_pipe__OHE": 'passthrough',
+        "transformer__brand_pipe__OE__categories": [categories['brand']],
+
+        # *** transmission
+        # "transformer__transmission_pipe__OHE__categories": [categories['transmission']],
+        # "transformer__transmission_pipe__OE": 'passthrough',
+
+        "transformer__transmission_pipe__OHE": 'passthrough',
+        "transformer__transmission_pipe__OE__categories": [categories['transmission']],
+
+        # *** fuel_type
+        # "transformer__fuel_type_pipe__OHE__categories": [categories['fuel_type']],
+        # "transformer__fuel_type_pipe__OE": 'passthrough',
+
+        "transformer__fuel_type_pipe__OHE": 'passthrough',
+        "transformer__fuel_type_pipe__OE__categories": [categories['fuel_type']],
+    }
+    model.set_params(**params)
     if dump_model:
         temp_model_name = f'temp_all_brand_model'
         temp_model_filename = f'{temp_model_name}.joblib'
@@ -335,14 +450,13 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
                'mileage', 'fuel_type',
                'tax', 'mpg',
                'engine_size', 'brand']
-    all_X_val = pd.DataFrame(columns=columns)
+    all_X_val = pd.DataFrame(columns=columns,dtype=float)
     all_y_val = pd.Series()
-    i = 0
-    print(f"\nTraining the model with:")
+    i = 1
+    print(f"\nTraining the model...")
     for brand, df in all_df.items():
         df_target = df[target]
         df = df.drop(target, axis=1)
-        # df.drop(['model','brand','transmission','fuel_type'],axis=1,inplace=True)
         X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(X=df,
                                                                               y=df_target,
                                                                               train_size=.75,
@@ -350,15 +464,15 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
                                                                               test_size=.1,
                                                                               random_state=1,
                                                                               show=verbose)
-        print(f"\t{brand}")
-        estimators = n_estimators+i*n_estimators
+        estimators = i*n_estimators
         model.set_params(**{"random_forest__n_estimators": estimators})
         model.fit(X_train, y_train)
-        all_X_val.append(X_val)
-        all_y_val.append(y_val)
+        
+        all_X_val=all_X_val.append(X_val)
+        all_y_val=all_y_val.append(y_val)
         i += 1
 
-    y_pred, y_val, rmse = evaluate(model, X_val, y_val)
+    y_pred, y_val, rmse = evaluate(model, all_X_val, all_y_val)
 
     model_path = '-'
     if dump_model:
@@ -367,7 +481,7 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
         model_path = join(model_directory_path, model_filename)
         rename(temp_model_path, model_path)
 
-    report.append([f"all brand",
+    report.append([f"Incremental Model",
                    int(round(rmse, 0)),
                    int(round(y_val.mean(), 0)),
                    int(round(y_pred.mean(), 0)),
@@ -387,11 +501,12 @@ if __name__ == "__main__":
         current_directory, dataset_directory, 'prepared_data')
 
     model_directory_path = 'model/'
-    all_data_file = 'all_set.csv'
-    train_set_file = 'train_set.csv'
-    val_set_file = 'val_set.csv'
+    # all_data_file = 'all_set.csv'
+    # train_set_file = 'train_set.csv'
+    # val_set_file = 'val_set.csv'
 
-    evaluations = get_all_models(files_directory, target='price', verbose=False)
+    evaluations = get_all_models(
+        files_directory, target='price', verbose=False)
     print_performance(evaluations)
 
     # ofa_evaluations = get_one_model_for_all(

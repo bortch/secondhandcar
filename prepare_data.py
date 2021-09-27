@@ -10,33 +10,47 @@ from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer,KNNImputer
 from scipy.stats import zscore
 
-
-def clean_variables(data):
-    print("\n\tRemoving duplicate entries and noisy features:")
+def set_as_categorical(data):
     df = data.copy()
     print("\t\tChange type to Categorical")
     columns = get_categorical_columns(df)
     for c in columns:
         df[c] = pd.Categorical(df[c], categories=df[c].unique().tolist())
-    # remove duplicate
-    print("\t\tDrop duplicate")
-    df.drop_duplicates(inplace=True)
-    # scale
-    print("\t\tScaling numerical feature")
+    print(f"columns set as category {columns}")
+    return df
+
+def set_as_numerical(data):
+    df = data.copy()
     num_columns = get_numerical_columns(df)
     #df['price']=df['price']/1.
     for c in num_columns:
         df[c] = pd.to_numeric(df[c])
+    return df
+
+def clean_variables(data):
+    print("\n\tRemoving duplicate entries and noisy features:")
+    df = data.copy()
+    df = set_as_categorical(df)
+    
+    # remove duplicate
+    print("\t\tDrop duplicate")
+    df.drop_duplicates(inplace=True)
+    
+    df = set_as_numerical(df)
+
+    # scale
+    print("\t\tScaling numerical feature")
+    num_columns = get_numerical_columns(df)
     num_columns.remove('price')
     scaler = MinMaxScaler()
     df[num_columns] = scaler.fit_transform(df[num_columns])
     std_scaler = StandardScaler(with_mean=False)
     df[num_columns] = std_scaler.fit_transform(df[num_columns])
     # remove unhandled categories
-    print("\t\tRemove unhandled categories")
-    df = df[df['transmission'] != 'Other']
-    df = df[(df['fuel_type'] != 'Other')]
-    df = df[(df['fuel_type'] != 'Electric')]
+    # print("\t\tRemove unhandled categories")
+    # df = df[df['transmission'] != 'Other']
+    # df = df[(df['fuel_type'] != 'Other')]
+    # df = df[(df['fuel_type'] != 'Electric')]
     # log target
     print("Replace target by Log(target)")
     df['price'] = np.log(df['price'])
@@ -117,7 +131,9 @@ def load_prepared_file(filename):
     file_path = join(source_directory,filename)
     if isfile(file_path):
         print(f"Loading {file_path}")
-        return pd.read_csv(file_path, index_col=0)
+        df = pd.read_csv(file_path, index_col=0)
+        #df = set_as_categorical(df)
+        return df
     else:
         return None
     
@@ -149,4 +165,4 @@ if __name__ == "__main__":
         _df = nan_outliers(_df)
         _df = numerical_imputer(_df, n_neighbors=10,weights='distance', imputer_type='KNN')
 
-        save_prepared_file(_df,filename=brand)
+        save_prepared_file(_df,filename=f"{brand}.csv")
