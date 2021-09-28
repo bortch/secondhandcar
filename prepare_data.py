@@ -1,4 +1,4 @@
-from os.path import join
+from os.path import join,isfile
 import pandas as pd
 import numpy as np
 from bs_lib.bs_eda import load_all_csv
@@ -10,33 +10,47 @@ from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer,KNNImputer
 from scipy.stats import zscore
 
-
-def clean_variables(data):
-    print("\n\tRemoving duplicate entries and noisy features:")
+def set_as_categorical(data):
     df = data.copy()
     print("\t\tChange type to Categorical")
     columns = get_categorical_columns(df)
     for c in columns:
         df[c] = pd.Categorical(df[c], categories=df[c].unique().tolist())
-    # remove duplicate
-    print("\t\tDrop duplicate")
-    df.drop_duplicates(inplace=True)
-    # scale
-    print("\t\tScaling numerical feature")
+    print(f"columns set as category {columns}")
+    return df
+
+def set_as_numerical(data):
+    df = data.copy()
     num_columns = get_numerical_columns(df)
     #df['price']=df['price']/1.
     for c in num_columns:
         df[c] = pd.to_numeric(df[c])
+    return df
+
+def clean_variables(data):
+    print("\n\tRemoving duplicate entries and noisy features:")
+    df = data.copy()
+    df = set_as_categorical(df)
+    
+    # remove duplicate
+    print("\t\tDrop duplicate")
+    df.drop_duplicates(inplace=True)
+    
+    df = set_as_numerical(df)
+
+    # scale
+    print("\t\tScaling numerical feature")
+    num_columns = get_numerical_columns(df)
     num_columns.remove('price')
     scaler = MinMaxScaler()
     df[num_columns] = scaler.fit_transform(df[num_columns])
     std_scaler = StandardScaler(with_mean=False)
     df[num_columns] = std_scaler.fit_transform(df[num_columns])
     # remove unhandled categories
-    print("\t\tRemove unhandled categories")
-    df = df[df['transmission'] != 'Other']
-    df = df[(df['fuel_type'] != 'Other')]
-    df = df[(df['fuel_type'] != 'Electric')]
+    # print("\t\tRemove unhandled categories")
+    # df = df[df['transmission'] != 'Other']
+    # df = df[(df['fuel_type'] != 'Other')]
+    # df = df[(df['fuel_type'] != 'Electric')]
     # log target
     print("Replace target by Log(target)")
     df['price'] = np.log(df['price'])
@@ -102,9 +116,30 @@ def numerical_imputer(data, n_neighbors=10, weights='distance', fit_set=None, im
     print("\tImputation done?", not df.isnull().values.any())
     return df
 
+def save_prepared_file(df, filename):
+    current_directory = "."
+    dataset_directory = "dataset"
+    dest_directory = join(current_directory,dataset_directory,'prepared_data')
+    dest_file_path = join(dest_directory,filename)
+    df.to_csv(dest_file_path)
+    print(f"{filename} data saved @ {dest_file_path}")
+
+def load_prepared_file(filename):
+    current_directory = "."
+    dataset_directory = "dataset"
+    source_directory = join(current_directory,dataset_directory,'prepared_data')
+    file_path = join(source_directory,filename)
+    if isfile(file_path):
+        print(f"Loading {file_path}")
+        df = pd.read_csv(file_path, index_col=0)
+        #df = set_as_categorical(df)
+        return df
+    else:
+        return None
+    
 
 if __name__ == "__main__":
-    file_to_exclude = []
+    file_to_exclude = ['all_set.csv']
     current_directory = "."
     dataset_directory = "dataset"
     file_directory = join(current_directory,dataset_directory,'file_processed')
@@ -130,6 +165,4 @@ if __name__ == "__main__":
         _df = nan_outliers(_df)
         _df = numerical_imputer(_df, n_neighbors=10,weights='distance', imputer_type='KNN')
 
-        dest_file_path = join(dest_directory,f'{brand}.csv')
-        _df.to_csv(dest_file_path)
-        print(f"{brand} data saved @ {dest_file_path}")
+        save_prepared_file(_df,filename=f"{brand}.csv")

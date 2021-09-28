@@ -33,9 +33,10 @@ import bs_lib.bs_terminal as terminal
 from scipy.stats import zscore
 
 from sklearn.experimental import enable_iterative_imputer
-from sklearn.impute import IterativeImputer,KNNImputer
-from bs_lib.bs_eda import load_csv,load_all_csv
-from bs_lib.bs_eda import get_numerical_columns, get_categorical_columns, train_val_test_split, split_by_row, load_csv_files_as_dict
+from sklearn.impute import IterativeImputer, KNNImputer
+from bs_lib.bs_eda import load_csv, load_all_csv, get_ordered_categories
+from bs_lib.bs_eda import get_numerical_columns, get_categorical_columns
+from bs_lib.bs_eda import train_val_test_split, split_by_row, load_csv_files_as_dict
 
 from joblib import dump, load
 
@@ -70,7 +71,7 @@ def discretize(X, kw_args):
     return X.apply(pd.cut, **kw_args)  # .cat.codes)
 
 
-def get_transformer(X):
+def get_transformer(X, verbose=False):
     print("\nCreating Columns transformers")
     transformer = ColumnTransformer(
         [
@@ -91,21 +92,30 @@ def get_transformer(X):
             # ('year_pipe', Pipeline(steps=[('discretize', KBinsDiscretizer(n_bins=10, encode='ordinal', strategy='quantile'))],
             #                        verbose=True), ['year']),
 
-            ('model_pipe', Pipeline(steps=[('OHE', OneHotEncoder(
-                handle_unknown='ignore'))], verbose=True), ['model']),
-            ('brand_pipe', Pipeline(steps=[('OHE', OneHotEncoder(
-                handle_unknown='ignore'))], verbose=True), ['brand']),
-            ('transmission_pipe', Pipeline(steps=[('OHE', OneHotEncoder(
-                handle_unknown='ignore'))], verbose=True), ['transmission']),
-            ('fuel_type_pipe', Pipeline(steps=[('OHE', OneHotEncoder(
-                handle_unknown='ignore'))], verbose=True), ['fuel_type'])
+            ('model_pipe', Pipeline(steps=[
+                #('OHE', OneHotEncoder(handle_unknown='ignore', sparse=False)),
+                ('OE', OrdinalEncoder())
+            ], verbose=verbose), ['model']),
+
+            ('brand_pipe', Pipeline(steps=[
+                ('OHE', OneHotEncoder(handle_unknown='ignore'))
+            ], verbose=verbose), ['brand']),
+
+            ('transmission_pipe', Pipeline(steps=[
+                ('OHE', OneHotEncoder(handle_unknown='ignore'))
+            ], verbose=verbose), ['transmission']),
+
+            ('fuel_type_pipe', Pipeline(steps=[
+                #('OHE', OneHotEncoder(handle_unknown='ignore'))
+                ('OE', OrdinalEncoder())
+            ], verbose=verbose), ['fuel_type'])
         ], remainder='passthrough', verbose=2)
     return transformer
 
 
 def extract_features(data):
     X = data.copy()
-    
+
     # drop testing
     # ['year', 'price', 'mileage', 'tax', 'mpg', 'engine_size']
     # X.drop(['year'],axis=1,inplace=True)
@@ -113,7 +123,7 @@ def extract_features(data):
     # X.drop(['mileage'],axis=1,inplace=True)
     # X.drop(['mpg'],axis=1,inplace=True)
     # X.drop(['engine_size'],axis=1,inplace=True)
-    
+
     # adding feature
     # X['age'] = X['year'].max()-X['year']
     # X.loc[X['age'] < 1, 'age'] = 1
@@ -147,8 +157,8 @@ def evaluate(model, X_val, y_val):
     return np.exp(y_pred), np.exp(y_val), rmse
 
 
-def evaluate_prediction(model, X_val, y_val, sample = None):
-    if sample: 
+def evaluate_prediction(model, X_val, y_val, sample=None):
+    if sample:
         X_val = X_val.sample(n=sample, random_state=1)
         y_val = y_val.sample(n=sample, random_state=1)
     y_pred = model.predict(X_val)
@@ -171,7 +181,8 @@ def evaluate_prediction(model, X_val, y_val, sample = None):
         row.append(f"{percentage:.0f} %")
         data.append(row)
     table = terminal.create_table(title="Prediction results",
-                                  columns=['Prediction','Real Price','Error', 'Percentage'],
+                                  columns=['Prediction', 'Real Price',
+                                           'Error', 'Percentage'],
                                   data=data)
     terminal.article(title="Model Prediction testing", content=table)
 
@@ -217,7 +228,8 @@ def load_data(file_name, dataset_directory_path='./dataset/', callback=None, pre
     if isfile(saved_file_path):
         data = pd.read_csv(saved_file_path, index_col=0)
         if show:
-            print(f"\t{file_name} was previously processed, {saved_file_name} reloaded")
+            print(
+                f"\t{file_name} was previously processed, {saved_file_name} reloaded")
     else:
         file_path = join(dataset_directory_path, file_name)
         data = pd.read_csv(file_path, index_col=0)
@@ -243,7 +255,7 @@ def clean_variables(data):
     # scale
     print("\t\tScaling numerical feature")
     num_columns = get_numerical_columns(df)
-    #df['price']=df['price']/1.
+    # df['price']=df['price']/1.
     for c in num_columns:
         df[c] = pd.to_numeric(df[c])
     num_columns.remove('price')
@@ -286,33 +298,33 @@ def outliers_transformer(data, drop=False):
         print(f"\ttagging outliers")
         for c in outliers.columns.to_list():
             df.loc[outliers[c], c] = np.nan
-        #print(df.info())
+        # print(df.info())
     return df
 
 
 def numerical_imputer(data, n_neighbors=10, weights='distance', fit_set=None, imputer_type=None):
     print('\nImput numerical missing value')
     df = data.copy()
-    #print("df",df.info())
+    # print("df",df.info())
     columns = get_numerical_columns(df)
     has_nan = df.isnull().values.any()
     print(f"\t{columns} has NAN? {has_nan}")
     if(has_nan):
         print("\tNAN found, imputing ...")
-        if imputer_type=='KNN':
+        if imputer_type == 'KNN':
             print('\tusing KNNImputer')
             imputer = KNNImputer(n_neighbors=n_neighbors, weights=weights)
         else:
             print('\tUsing IterativeImputer')
             imputer = IterativeImputer(random_state=0)
         if isinstance(fit_set, pd.DataFrame):
-            print('\tfit imputer using fit_set:',fit_set.shape)
+            print('\tfit imputer using fit_set:', fit_set.shape)
             imputer.fit(fit_set[columns])
-            imputed = imputer.transform(df[columns])            
+            imputed = imputer.transform(df[columns])
         else:
             imputed = imputer.fit_transform(df[columns])
-        for i,c in enumerate(columns):
-            df[c]=imputed[:,i]
+        for i, c in enumerate(columns):
+            df[c] = imputed[:, i]
         #print("\thas inf?", df.isin([np.nan, np.inf, -np.inf]).values.any())
     print("\tImputation done?", not df.isnull().values.any())
     return df
@@ -378,19 +390,20 @@ if __name__ == "__main__":
     val_set_file = 'val_set.csv'
     prefix = 'prepared'
     path_to_files = join(dataset_directory_path, prefix)
-    
+
     all_data = load_data(all_data_file, dataset_directory_path,
                          callback=[clean_variables],
                          prefix=prefix, show=True)
     # Drop all outliers
     all_data = drop_outliers(all_data)
-    
+
     # Mark and impute all outliers
     #all_data = nan_outliers(all_data)
     #all_data = numerical_imputer(all_data, n_neighbors=50, weights='distance')
-    
-    all_filename = ['X_train.csv','X_val.csv','X_test.csv','y_train.csv','y_val.csv','y_test.csv']
-    if isfile(join(path_to_files,f"{all_filename[0]}")):
+
+    all_filename = ['X_train.csv', 'X_val.csv', 'X_test.csv',
+                    'y_train.csv', 'y_val.csv', 'y_test.csv']
+    if isfile(join(path_to_files, f"{all_filename[0]}")):
         all_files = load_all_csv(path_to_files, index=0)
         X_train = all_files["x_train"]
         X_val = all_files["x_val"]
@@ -401,26 +414,30 @@ if __name__ == "__main__":
     else:
         print("\nSplitting into train, val and test sets")
         train_set, test_set = split_by_row(all_data, .8)
-        
+
         # *** Modify train_set for training *** #
         # Imputing
         train_set = nan_outliers(train_set)
-        train_set = numerical_imputer(train_set, n_neighbors=100, weights='distance',fit_set=all_data, imputer_type='KNN')
+        train_set = numerical_imputer(
+            train_set, n_neighbors=100, weights='distance', fit_set=all_data, imputer_type='KNN')
         # Droping
         # train_set = drop_outliers(train_set)
-        
-        X_train_val, y_train_val = get_features_target(train_set, target_name='price', show=True)
-        X_test, y_test = get_features_target(test_set, target_name='price', show=True)
-        
-        X_train, X_val, y_train, y_val = train_test_split(X_train_val,y_train_val,train_size=.85,random_state=1)
+
+        X_train_val, y_train_val = get_features_target(
+            train_set, target_name='price', show=True)
+        X_test, y_test = get_features_target(
+            test_set, target_name='price', show=True)
+
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_train_val, y_train_val, train_size=.85, random_state=1)
         print(f"\tX_train: {X_train.shape}\n\tX_val: {X_val.shape}\n\tX_test: {X_test.shape}\n\ty_train: {y_train.shape}\n\ty_val: {y_val.shape}\n\ty_test: {y_test.shape}")
 
-        X_train.to_csv(join(path_to_files,"X_train.csv"))
-        y_train.to_csv(join(path_to_files,"y_train.csv"))
-        X_val.to_csv(join(path_to_files,"X_val.csv"))
-        y_val.to_csv(join(path_to_files,"y_val.csv"))
-        X_test.to_csv(join(path_to_files,"X_test.csv"))
-        y_test.to_csv(join(path_to_files,"y_test.csv"))
+        X_train.to_csv(join(path_to_files, "X_train.csv"))
+        y_train.to_csv(join(path_to_files, "y_train.csv"))
+        X_val.to_csv(join(path_to_files, "X_val.csv"))
+        y_val.to_csv(join(path_to_files, "y_val.csv"))
+        X_test.to_csv(join(path_to_files, "X_test.csv"))
+        y_test.to_csv(join(path_to_files, "y_test.csv"))
 
     transformer = get_transformer(X_train)
 
@@ -433,15 +450,16 @@ if __name__ == "__main__":
     temp_model_filename = f'{temp_model_name}.joblib'
     temp_model_path = join(model_directory_path, temp_model_filename)
     nb_estimators = 10
-    model_to_load =''#'model_10_1937.8390856038359.joblib'
-    model_to_load_path = join(model_directory_path,model_to_load)
+    model_to_load = ''  # 'model_10_1937.8390856038359.joblib'
+    model_to_load_path = join(model_directory_path, model_to_load)
     if isfile(model_to_load_path):
-       model = load(model_to_load_path)
-       # print(model)
+        model = load(model_to_load_path)
+        # print(model)
     else:
-    #pipeline: predict preprocessing
+        # pipeline: predict preprocessing
         steps = [
-            ("features_extraction", FunctionTransformer(extract_features, validate=False)),
+            ("features_extraction", FunctionTransformer(
+                extract_features, validate=False)),
             ("transformer", transformer),
             #("check integrity",FunctionTransformer(check_integrity)),
             ("random_forest", RandomForestRegressor(
@@ -449,16 +467,25 @@ if __name__ == "__main__":
                 max_features='auto',
                 min_samples_split=6,
                 max_depth=50,
-                n_jobs=-1, 
-                #warm_start=True, #Optimise computation during GridSearchCV
+                n_jobs=-1,
+                # warm_start=True, #Optimise computation during GridSearchCV
                 verbose=True
-                ))
+            ))
         ]
         model = Pipeline(steps=steps, verbose=True)
-
+        print(all_data.columns)
+        # set model params
+        categories = get_ordered_categories(all_data, by='price')
+        print(categories.keys())
+        model.set_params(**{
+            "transformer__model_pipe__OE__categories": [categories['model']],
+            "transformer__brand_pipe__OHE__categories": [categories['brand']],
+            "transformer__transmission_pipe__OHE__categories": [categories['transmission']],
+            "transformer__fuel_type_pipe__OE__categories": [categories['fuel_type']],
+        })
         print("\nTraining the model")
         model.fit(X_train, y_train)
-        dump(model, temp_model_path)
+        #dump(model, temp_model_path)
 
     param_grid = {
         # 'random_forest__max_depth': [40, 50, 100],
@@ -509,12 +536,12 @@ if __name__ == "__main__":
     #     model, param_grid, X_train, y_train, scoring=mse)
     # dump(model, model_path)
     # print(X_val.isna().any())
-    y_pred,y_val,rmse = evaluate(model, X_val, y_val)
-    model_name = f'model_{nb_estimators}_{rmse}'
-    model_filename = f'{model_name}.joblib'
-    model_path = join(model_directory_path, model_filename)
-    rename(temp_model_path, model_path)
-    
+    y_pred, y_val, rmse = evaluate(model, X_val, y_val)
+    # model_name = f'model_{nb_estimators}_{rmse}'
+    # model_filename = f'{model_name}.joblib'
+    # model_path = join(model_directory_path, model_filename)
+    # rename(temp_model_path, model_path)
+
     #RMSE: 1829.6801093112176
 
     # RMSE: 908.2924800638677
