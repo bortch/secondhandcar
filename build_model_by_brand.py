@@ -154,6 +154,7 @@ def optimize():
     all_df = get_data()
 
     for brand, dataframe in all_df.items():
+        # get data
         filename = f"{brand}.csv"
         df = get_prepared_data(dataframe, filename)
         categories = get_ordered_categories(data=df, by='price')  
@@ -162,6 +163,7 @@ def optimize():
         #load model
         model_name = f'model_{brand}.joblib'
         model = load(join(model_directory_path,model_name))
+        #print(model.get_params(['transformer']))
         optimizer.optimize(model, X_train, y_train)
 
 if __name__ == "__main__":
