@@ -134,7 +134,7 @@ def get_model(evaluate=True):
 
         y_pred, y_val, rmse = build.evaluate(model, X_val, y_val)
 
-        model_name = f'model_{brand}'
+        model_name = f'{brand}_model'
         model_path = build.dump_model(model, model_name, model_directory_path)
         if evaluate:
             report.append([brand.title(),
@@ -159,7 +159,7 @@ def get_best_models(verbose=False):
             df, target='price')
 
         # load model
-        model_name = f'model_{brand}.joblib'
+        model_name = f'{brand}_optimise.joblib'
         model = load(join(model_directory_path, model_name))
 
         best_model = model
@@ -193,16 +193,15 @@ def get_best_models(verbose=False):
         print(f'Best Model saved @ {model_path}')
 
 
-def evaluate_all_models():
+def evaluate_all_models(search_term='optimize',exclude=[]):
     report = []
-    exclude = []
     # load all models
     models = []
     for f in listdir(model_directory_path):
         if (isfile(join(model_directory_path, f))
                 and f.endswith('.joblib')
                 and f not in exclude
-                and 'optimize' in f):
+                and search_term in f):
             brand = f.split('_')[0]
             filename = f"{brand}.csv"
             df = prepare.load_prepared_file(filename=filename)
@@ -221,6 +220,6 @@ def evaluate_all_models():
 
 if __name__ == "__main__":
     
-    get_model()
+    #get_model()
     get_best_models()#verbose=True)
     # evaluate_all_models()
