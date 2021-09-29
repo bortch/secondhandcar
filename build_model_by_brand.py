@@ -90,7 +90,8 @@ def get_prepared_data(df, filename):
     return _df
 
 
-def get_set_split(df, target):
+def get_set_split(data, target):
+    df = data.copy()
     df_target = df[target]
     df.drop(target, axis=1, inplace=True)
     return train_val_test_split(X=df,
