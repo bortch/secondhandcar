@@ -26,16 +26,16 @@ model_directory_path = join(current_directory, model_directory)
 def get_model_params(categories):
 
     return {
-        "features_extraction":'passthrough',
-        #"features_extraction__kw_args": {'features': ["age", "tax_per_year"]},
+        # "features_extraction": 'passthrough',
+        "features_extraction__kw_args": {'features': ["age", "tax_per_year"]},
         # -----------
         # numerical
         # ___________
-        "transformer__poly": 'passthrough',
-        "transformer__mpg_pipe": 'passthrough',
-        "transformer__tax_pipe": 'passthrough',
-        "transformer__engine_size_pipe": 'passthrough',
-        "transformer__year_pipe": 'passthrough',
+        # "transformer__poly": 'passthrough',
+        # "transformer__mpg_pipe": 'passthrough',
+        # "transformer__tax_pipe": 'passthrough',
+        # "transformer__engine_size_pipe": 'passthrough',
+        # "transformer__year_pipe": 'passthrough',
         # -------------
         # categorical
         # -------------
@@ -145,31 +145,8 @@ def get_model(evaluate=True):
     if evaluate:
         build.print_performance(report)
 
-# def optimize():
 
-#     # exclude = []
-#     # models = [join(model_directory_path, f) for f in listdir(model_directory_path) if (
-#     #     isfile(join(model_directory_path, f)) and f.endswith('.joblib') and f not in exclude)]
-#     # print(f'loading:{models}')
-
-#     all_df = get_data()
-
-#     for brand, dataframe in all_df.items():
-#         # get data
-#         filename = f"{brand}.csv"
-#         df = get_prepared_data(dataframe, filename)
-#         categories = get_ordered_categories(data=df, by='price')
-#         X_train, X_val, X_test, y_train, y_val, y_test = get_set_split(
-#             df, target='price')
-
-#         # load model
-#         model_name = f'model_{brand}.joblib'
-#         model = load(join(model_directory_path, model_name))
-#         # print(model.get_params(['transformer']))
-#         optimizer.optimize(model, X_train, y_train)
-
-
-def get_best_models():
+def get_best_models(verbose=False):
     all_df = get_data()
 
     for brand, dataframe in all_df.items():
@@ -187,28 +164,32 @@ def get_best_models():
 
         best_model = model
         best_params = {}
-        _, _, best_score = build.evaluate(model, X_val, y_val, verbose=True)
+        _, _, best_score = build.evaluate(model, X_val, y_val, verbose=verbose)
 
         for param in optimizer.get_combinations_of_params():
             model_, params_, _ = optimizer.evaluate_combination(
-                model, param, X_val, y_val, verbose=True)
+                model, param, X_val, y_val, verbose=verbose)
             _, _, current_score = build.evaluate(
-                model_, X_val, y_val, verbose=False)
-            print(
-                f"\nCurrent param combination Score: {current_score}, last best Score {best_score}")
+                model_, X_val, y_val, verbose=verbose)
+            if verbose:
+                print(
+                    f"\nCurrent param combination Score: {current_score}, last best Score {best_score}")
             if current_score < best_score:
                 best_model = model_
                 best_params = params_
                 best_score = current_score
-                print("\nNew best solution:")
-                print("\nBest score", best_score)
-                print("\nBest params", best_params)
+                if verbose:
+                    print("\nNew best solution:")
+                    print("\nBest score", best_score)
+                    print("\nBest params", best_params)
 
+        # if verbose:
         print(f"\n{brand} - Best score", best_score)
         print(f"{brand} - Best params", best_params)
         model_name = f'{brand}_optimize_rmse_{best_score:.0f}'
         model_path = build.dump_model(
             best_model, model_name, model_directory_path)
+        # if verbose:
         print(f'Best Model saved @ {model_path}')
 
 
@@ -225,18 +206,21 @@ def evaluate_all_models():
             brand = f.split('_')[0]
             filename = f"{brand}.csv"
             df = prepare.load_prepared_file(filename=filename)
-            X_train, X_val, X_test, y_train, y_val, y_test = get_set_split(df, target='price')
+            X_train, X_val, X_test, y_train, y_val, y_test = get_set_split(
+                df, target='price')
             model_path = join(model_directory_path, f)
             model = load(model_path)
             y_pred, y_val, rmse = build.evaluate(model, X_val, y_val)
             report.append([brand.title(),
-                        int(round(rmse, 0)),
-                        int(round(y_val.mean(), 0)),
-                        int(round(y_pred.mean(), 0)),
-                        model_path])
+                           int(round(rmse, 0)),
+                           int(round(y_val.mean(), 0)),
+                           int(round(y_pred.mean(), 0)),
+                           model_path])
     build.print_performance(report)
 
+
 if __name__ == "__main__":
+    
     get_model()
-    #get_best_models()
-    #evaluate_all_models()
+    get_best_models()#verbose=True)
+    # evaluate_all_models()

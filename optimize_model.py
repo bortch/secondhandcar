@@ -1,10 +1,9 @@
 import numpy as np
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer, mean_squared_error
-from os.path import join, isfile
-from os import listdir
-from itertools import compress, product
-from build_model import evaluate
+#from os.path import join, isfile
+#from os import listdir
+from itertools import product, permutations
 
 all_params = {
     # 'random_forest': {'random_forest__max_depth': [40, 50, 100],
@@ -52,31 +51,33 @@ def get_best_params(model, param_grid, X, y, scoring, verbose=False):
     return grid.best_params_
 
 
-def optimize(model, X_train, y_train):
-    best_params = {}
-    for key, param in all_params.items():
-        if model.get_params()[key] == 'passthrough':
-            best_params[key] = 'passthrough'
-            #print(f"{key} skipped: 'passthrough'")
-        else:
-            #print(f'Optimizing {key}')
-            # *** GridSearchCV ***#
-            mse = make_scorer(mean_squared_error, greater_is_better=False)
-            best_params[key] = get_best_params(
-                model, param, X_train, y_train, scoring=mse, verbose=False)
-    print(best_params)
-    return best_params
+# def optimize(model, X_train, y_train):
+#     best_params = {}
+#     for key, param in all_params.items():
+#         if model.get_params()[key] == 'passthrough':
+#             best_params[key] = 'passthrough'
+#             #print(f"{key} skipped: 'passthrough'")
+#         else:
+#             #print(f'Optimizing {key}')
+#             # *** GridSearchCV ***#
+#             mse = make_scorer(mean_squared_error, greater_is_better=False)
+#             best_params[key] = get_best_params(
+#                 model, param, X_train, y_train, scoring=mse, verbose=False)
+#     print(best_params)
+#     return best_params
 
 
 def evaluate_combination(model, params, X_train, y_train, verbose=False):
-    print("\nEvaluate params combination")
+    if verbose:
+        print("\nEvaluate params combination")
     best_params = {}
     model_ = model
     best_score = np.Inf
     for key, param in params.items():
-        print(f"\nSearch best param for '{key}'")
-        #\nParams: {param}")
-        best_params[key]='passthrough'
+        if verbose:
+            print(f"\nSearch best param for '{key}'")
+        # \nParams: {param}")
+        best_params[key] = 'passthrough'
         if param == 'passthrough':
             best_params[key] = 'passthrough'
         else:
@@ -101,15 +102,28 @@ def evaluate_combination(model, params, X_train, y_train, verbose=False):
 
 def get_combinations_of_params():
     nb_params = len(all_params)
-    comb = {}
-    mask = product(range(2), repeat=nb_params)
-    for m in mask:
+    masks = product(range(2), repeat=nb_params)
+
+    for mask in masks:
+        empty_combination = {}
+        filled_combination = {}
+        # build a combination
         for index, key in enumerate(all_params):
-            if m[index] < 1:
-                comb[key] = 'passthrough'
+            if mask[index] < 1:
+                empty_combination[key] = 'passthrough'
             else:
-                comb[key] = all_params[key]
-        yield comb
+                filled_combination[key] = all_params[key]
+        # produce permutations
+        if sum(list(mask)) == 0:
+            # no permutation if only "passthrough"
+            yield empty_combination
+        else:
+            for permutation in permutations(filled_combination):
+                perm = {}
+                for key in permutation:
+                    perm[key] = filled_combination[key]
+                combination = {**perm, **empty_combination}
+                yield combination
 
 
 if __name__ == "__main__":
