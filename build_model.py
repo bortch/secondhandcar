@@ -380,9 +380,14 @@ def get_all_categories(all_df):
     return results
 
 
-def get_one_model_for_all(files_directory, target, dump_model=False, model_directory='', verbose=False):
-    all_df = load_all_csv(dataset_path=files_directory,
-                          index=0, exclude=["all_set.csv"])
+def get_one_model_for_all(model_to_dump=False, evaluation=False, verbose=False):
+    current_directory = "."
+    dataset_directory = "dataset"
+    files_directory = join(
+        current_directory, dataset_directory, 'prepared_data')
+    model_directory_path = 'model/'
+
+    all_df = load_all_csv(dataset_path=files_directory, index=0,exclude=["all_set.csv"])
     categories = get_all_categories(all_df)
     report = []
 
@@ -438,12 +443,6 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
         "transformer__fuel_type_pipe__OE__categories": [categories['fuel_type']],
     }
     model.set_params(**params)
-    if dump_model:
-        temp_model_name = f'temp_all_brand_model'
-        temp_model_filename = f'{temp_model_name}.joblib'
-        temp_model_path = join(model_directory_path, temp_model_filename)
-        dump(model, temp_model_path)
-        print(f"Model for all brand:\n")
     n_estimators = 10
     columns = ['model', 'year', 'transmission',
                'mileage', 'fuel_type',
@@ -452,7 +451,8 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
     all_X_val = pd.DataFrame(columns=columns, dtype=float)
     all_y_val = pd.Series()
     i = 1
-    print(f"\nTraining the model...")
+    # print(f"\nTraining the model...")
+    target = 'price'
     for brand, df in all_df.items():
         df_target = df[target]
         df = df.drop(target, axis=1)
@@ -473,20 +473,17 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
 
     y_pred, y_val, rmse = evaluate(model, all_X_val, all_y_val)
 
-    model_path = '-'
-    if dump_model:
-        model_name = f'model_all_brand_{round(rmse,0)}'
-        model_filename = f'{model_name}.joblib'
-        model_path = join(model_directory_path, model_filename)
-        rename(temp_model_path, model_path)
+    if model_to_dump:
+        model_name = f'all_brand_model_{round(rmse,0)}'
+        model_path = dump_model(model, model_name, model_directory_path, verbose=False)
 
-    report.append([f"Incremental Model",
+    report.append([f"Inc. Model",
                    int(round(rmse, 0)),
                    int(round(y_val.mean(), 0)),
                    int(round(y_pred.mean(), 0)),
                    model_path])
-
-    return report
+    if evaluation:
+        print_performance(report)
 
 
 def load_model_with_params(model_name):
