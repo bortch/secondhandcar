@@ -1,40 +1,36 @@
 # coding=utf-8
+import json
+from joblib import dump, load
+from bs_lib.bs_eda import train_val_test_split, get_ordered_categories
+from bs_lib.bs_eda import load_csv, load_all_csv
+import bs_lib.bs_preprocess_lib as bsp
+import bs_lib.bs_transformer as tsf
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import KBinsDiscretizer
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
+from sklearn.compose import make_column_selector
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import FunctionTransformer
+import bs_lib.bs_terminal as terminal
+import pandas as pd
+import numpy as np
+from matplotlib.pyplot import title
+from os.path import join, isfile
+from os import rename
+import sys
+from bs_lib.bs_eda import get_categorical_columns
+from pandas.core.indexes import category
 import warnings
 warnings.filterwarnings('ignore')
 
-from pandas.core.indexes import category
-from bs_lib.bs_eda import get_categorical_columns
-import sys
-from os import rename
-from os.path import join, isfile
-from matplotlib.pyplot import title
-import numpy as np
-import pandas as pd
-import bs_lib.bs_terminal as terminal
 
-from sklearn.preprocessing import FunctionTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.compose import make_column_selector
-
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
-
-from sklearn.preprocessing import KBinsDiscretizer
-
-from sklearn.ensemble import RandomForestRegressor
-
-from sklearn.metrics import mean_squared_error
-
-from sklearn.preprocessing import PolynomialFeatures
-
-import bs_lib.bs_transformer as tsf
-import bs_lib.bs_preprocess_lib as bsp
-import bs_lib.bs_terminal as terminal
-
-from bs_lib.bs_eda import load_csv, load_all_csv
-from bs_lib.bs_eda import train_val_test_split, get_ordered_categories
-
-from joblib import dump, load
+# Constant
+current_directory = "."
+dataset_directory = "dataset"
+model_directory_path = 'model/'
 
 
 def get_transformer(verbose=False):
@@ -99,9 +95,9 @@ def extract_features(data, features=['all']):
     X = data.copy()
     if 'all' in features:
         features = ['model_count', 'age',
-                  'mpy_mpy', 'tax_per_year',
-                  'mileage_per_year','mpg_per_year',
-                  'engine_per_year']
+                    'mpy_mpy', 'tax_per_year',
+                    'mileage_per_year', 'mpg_per_year',
+                    'engine_per_year']
     # drop testing
     # ['year', 'price', 'mileage', 'tax', 'mpg', 'engine_size']
     # X.drop(['year'],axis=1,inplace=True)
@@ -219,6 +215,7 @@ def check_integrity(matrix):
     # #df.columns.to_series()[np.isinf(df).any()]
     return matrix  # data[~data.isin([np.nan, np.inf, -np.inf]).any(1)]
 
+
 def dump_model(model, as_filename, in_model_directory_path, verbose=False):
     model_filename = f'{as_filename}.joblib'
     dumped_model_path = join(in_model_directory_path, model_filename)
@@ -227,13 +224,14 @@ def dump_model(model, as_filename, in_model_directory_path, verbose=False):
         print(f"Model {as_filename} saved @ {dumped_model_path}")
     return dumped_model_path
 
+
 def get_model(model_path_to_load=None, verbose=False, warm_start=False, transformers=None):
-    
+
     if transformers == None:
         transformers_ = get_transformer(verbose=verbose)
     else:
         transformers_ = transformers
-    
+
     nb_estimators = 10
     if (model_path_to_load is not None) and isfile(model_path_to_load):
         model = load(model_path_to_load)
@@ -253,7 +251,7 @@ def get_model(model_path_to_load=None, verbose=False, warm_start=False, transfor
                 verbose=verbose
             ))
         ]
-        pipeline = Pipeline(steps=steps, verbose=verbose) 
+        pipeline = Pipeline(steps=steps, verbose=verbose)
         return pipeline
 
 
@@ -319,7 +317,7 @@ def get_all_models(files_directory, target, dump_model=False, model_directory=''
             # "transformer__fuel_type_pipe__OE__categories": [categories['fuel_type']],
         }
 
-        #print(model.get_params().keys())
+        # print(model.get_params().keys())
         model.set_params(**params)
 
         print(f"\nTraining the model for {brand}")
@@ -375,15 +373,16 @@ def get_all_categories(all_df):
         # sort each categories
         df.sort_values("price", ascending=True,
                        inplace=True, ignore_index=True)
-        results[cat]=[]
-        for c in df[cat].values: 
+        results[cat] = []
+        for c in df[cat].values:
             results[cat].append(c)
-        #print(results[cat])
+        # print(results[cat])
     return results
 
 
 def get_one_model_for_all(files_directory, target, dump_model=False, model_directory='', verbose=False):
-    all_df = load_all_csv(dataset_path=files_directory, index=0,exclude=["all_set.csv"])
+    all_df = load_all_csv(dataset_path=files_directory,
+                          index=0, exclude=["all_set.csv"])
     categories = get_all_categories(all_df)
     report = []
 
@@ -391,14 +390,14 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
     params = {
         # "features_extraction":'passthrough',
         "features_extraction__kw_args": {'features': [
-                  'model_count', 
-                  #'age',
-                  'mpy_mpy', 
-                  'tax_per_year',
-                  #'mileage_per_year',
-                  #'mpg_per_year',
-                  #'engine_per_year'
-                  ]},
+            'model_count',
+            # 'age',
+            'mpy_mpy',
+            'tax_per_year',
+            # 'mileage_per_year',
+            # 'mpg_per_year',
+            # 'engine_per_year'
+        ]},
         # -----------
         # numerical
         # ___________
@@ -406,7 +405,7 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
         # "transformer__mpg_pipe": 'passthrough',
         "transformer__tax_pipe": 'passthrough',
         "transformer__engine_size_pipe": 'passthrough',
-        #"transformer__year_pipe": 'passthrough',
+        # "transformer__year_pipe": 'passthrough',
         # -------------
         # categorical
         # -------------
@@ -450,7 +449,7 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
                'mileage', 'fuel_type',
                'tax', 'mpg',
                'engine_size', 'brand']
-    all_X_val = pd.DataFrame(columns=columns,dtype=float)
+    all_X_val = pd.DataFrame(columns=columns, dtype=float)
     all_y_val = pd.Series()
     i = 1
     print(f"\nTraining the model...")
@@ -467,9 +466,9 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
         estimators = i*n_estimators
         model.set_params(**{"random_forest__n_estimators": estimators})
         model.fit(X_train, y_train)
-        
-        all_X_val=all_X_val.append(X_val)
-        all_y_val=all_y_val.append(y_val)
+
+        all_X_val = all_X_val.append(X_val)
+        all_y_val = all_y_val.append(y_val)
         i += 1
 
     y_pred, y_val, rmse = evaluate(model, all_X_val, all_y_val)
@@ -490,17 +489,24 @@ def get_one_model_for_all(files_directory, target, dump_model=False, model_direc
     return report
 
 
+def load_model_with_params(model_name):
+    model_path = join(current_directory, model_directory_path,
+                      f"{model_name}.joblib")
+    model = load(model_path)
+    params_path = join(current_directory,
+                       model_directory_path, f"{model_name}.json")
+    params = json.load(params_path)
+    return model.set_params(params)
+
+
 if __name__ == "__main__":
     np.random.seed(1)
 
     pd.options.mode.use_inf_as_na = True
 
-    current_directory = "."
-    dataset_directory = "dataset"
     files_directory = join(
         current_directory, dataset_directory, 'prepared_data')
 
-    model_directory_path = 'model/'
     # all_data_file = 'all_set.csv'
     # train_set_file = 'train_set.csv'
     # val_set_file = 'val_set.csv'
