@@ -1,0 +1,1 @@
+{"transformer__poly": "passthrough", "transformer__mpg_pipe": "passthrough", "transformer__tax_pipe": "passthrough", "transformer__engine_size_pipe": "passthrough", "transformer__year_pipe": "passthrough"}

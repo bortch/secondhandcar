@@ -3,6 +3,7 @@ from os import listdir
 from numpy.lib.utils import deprecate
 import pandas as pd
 import numpy as np
+import json
 
 from bs_lib.bs_eda import load_all_csv, load_csv_file
 from bs_lib.bs_eda import train_val_test_split, get_ordered_categories
@@ -156,19 +157,18 @@ def get_best_models(verbose=False):
         filename = f"{brand}.csv"
         df = get_prepared_data(dataframe, filename)
         #categories = get_ordered_categories(data=df, by='price')
-        X_train, X_val, X_test, y_train, y_val, y_test = get_set_split(
+        _, X_val, _, _, y_val, _ = get_set_split(
             df, target='price')
 
         # load model
-        model_name = f'{brand}_optimise.joblib'
+        model_name = f'model_{brand}.joblib'
         model = load(join(model_directory_path, model_name))
 
         best_model = model
         best_params = {}
         _, _, best_score = build.evaluate(model, X_val, y_val, verbose=verbose)
-
         for param in optimizer.get_combinations_of_params():
-            model_, params_, _ = optimizer.evaluate_combination(
+            model_, params_, _ = optimizer.evaluate_combinations(
                 model, param, X_val, y_val, verbose=verbose)
             _, _, current_score = build.evaluate(
                 model_, X_val, y_val, verbose=verbose)
@@ -187,12 +187,14 @@ def get_best_models(verbose=False):
         # if verbose:
         print(f"\n{brand} - Best score", best_score)
         print(f"{brand} - Best params", best_params)
-        model_name = f'{brand}_optimize_rmse_{best_score:.0f}'
+        model_name = f'{brand}_optimized_rmse_{best_score:.0f}'
         model_path = build.dump_model(
             best_model, model_name, model_directory_path)
         # if verbose:
         print(f'Best Model saved @ {model_path}')
-
+        params_file_path = join(model_directory_path,f"{model_name}.json")
+        with open(params_file_path, 'w') as file:
+            json.dump(best_params, file)
 
 def evaluate_all_models(search_term='optimize',exclude=[]):
     report = []
@@ -206,7 +208,7 @@ def evaluate_all_models(search_term='optimize',exclude=[]):
             brand = f.split('_')[0]
             filename = f"{brand}.csv"
             df = prepare.load_prepared_file(filename=filename)
-            X_train, X_val, X_test, y_train, y_val, y_test = get_set_split(
+            _, X_val, _, _, y_val, _ = get_set_split(
                 df, target='price')
             model_path = join(model_directory_path, f)
             model = load(model_path)
@@ -222,5 +224,5 @@ def evaluate_all_models(search_term='optimize',exclude=[]):
 if __name__ == "__main__":
     
     #get_model()
-    get_best_models()#verbose=True)
+    get_best_models(verbose=False)
     # evaluate_all_models()

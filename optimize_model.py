@@ -3,7 +3,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer, mean_squared_error
 #from os.path import join, isfile
 #from os import listdir
-from itertools import product, permutations
+from itertools import combinations, product, permutations
 
 all_params = {
     # 'random_forest': {'random_forest__max_depth': [40, 50, 100],
@@ -100,30 +100,122 @@ def evaluate_combination(model, params, X_train, y_train, verbose=False):
     return model_, best_params, best_score
 
 
+def evaluate_combinations(model, params, X_train, y_train, verbose=False):
+    if verbose:
+        print("\nEvaluate params combination")
+    best_params = {}
+    best_model = model
+    best_score = np.Inf
+    to_skip_previous_param_key = []
+    # get a permutation of params combination
+    for permutation in permutations(params.keys()):
+        if verbose:
+            print(f'\nNew permutation\n')
+            print(f"{permutation}\n")
+        # build permutated combination
+        combination = {}
+        for key in permutation:
+            combination[key] = params[key]
+        # init score to challenge
+        combination_score = best_score
+        combination_model = best_model
+        combination_params = best_params
+        # print(f'Combination to evaluate {combination}')
+        # evaluate params one at times:
+        for key, param in combination.items():
+            # skip the evaluation:
+            # if params belong to current solution
+            if key in best_params.keys():
+                continue
+            # if it still the same param as in the previous permutation
+            if key in to_skip_previous_param_key:
+                # print("try to evaluate last bad param")
+                break
+            to_skip_previous_param_key.clear()
+            if verbose:
+                print(f"\nSearch best param for '{key}'")
+            # build the current grid_param to be optimized
+            param_grid={}
+            if param == 'passthrough':
+                param_grid[key]= [param]
+            else:
+                for p in param:
+                    param_grid[p]=param[p]
+
+            for key, param in combination_params.items():
+                if isinstance(param, list):
+                    param_grid[key]=param
+                else:
+                    param_grid[key]= [param]
+            if verbose:
+                print('Current Param Grid to evaluate:',param_grid)
+            mse = make_scorer(mean_squared_error, greater_is_better=False)
+            grid = GridSearchCV(model, param_grid=param_grid,
+                                cv=5, scoring=mse,
+                                verbose=verbose,
+                                n_jobs=-1,
+                                # pre_dispatch=1
+                                )
+            grid.fit(X_train, y_train)
+            # if it is a better score
+            # keep track of the optimized parameters
+            if combination_score >= grid.best_score_:
+                if verbose:
+                    print(f'current score {combination_score}, better solution found:{grid.best_score_}')
+                combination_model = grid.best_estimator_
+                combination_params = {**combination_params,**grid.best_params_}
+                combination_score = grid.best_score_
+                #to_skip_previous_param_key.pop(key)
+            else:
+                # else itisn't a good start
+                if verbose:
+                    print(f"Add {key} to be skipped with param: \n{param}\n")
+                to_skip_previous_param_key.append(key)
+                break
+        #print('Best Score',best_score,'\n',best_params[key])
+        if combination_score <= best_score:
+            best_model = combination_model
+            best_score = combination_score
+            best_params = combination_params
+    return best_model, best_params, best_score
+
+
+# def get_permutation_of_combinations_of_params():
+#     nb_params = len(all_params)
+#     masks = product(range(2), repeat=nb_params)
+
+#     for mask in masks:
+#         empty_combination = {}
+#         filled_combination = {}
+#         # build a combination
+#         for index, key in enumerate(all_params):
+#             if mask[index] < 1:
+#                 empty_combination[key] = 'passthrough'
+#             else:
+#                 filled_combination[key] = all_params[key]
+#         # produce permutations
+#         if sum(list(mask)) == 0:
+#             # no permutation if only "passthrough"
+#             yield empty_combination
+#         else:
+#             for permutation in permutations(filled_combination):
+#                 perm = {}
+#                 for key in permutation:
+#                     perm[key] = filled_combination[key]
+#                 combination = {**perm, **empty_combination}
+#                 yield combination
+
 def get_combinations_of_params():
     nb_params = len(all_params)
-    masks = product(range(2), repeat=nb_params)
-
-    for mask in masks:
-        empty_combination = {}
-        filled_combination = {}
-        # build a combination
+    comb = {}
+    mask = product(range(2), repeat=nb_params)
+    for m in mask:
         for index, key in enumerate(all_params):
-            if mask[index] < 1:
-                empty_combination[key] = 'passthrough'
+            if m[index] < 1:
+                comb[key] = 'passthrough'
             else:
-                filled_combination[key] = all_params[key]
-        # produce permutations
-        if sum(list(mask)) == 0:
-            # no permutation if only "passthrough"
-            yield empty_combination
-        else:
-            for permutation in permutations(filled_combination):
-                perm = {}
-                for key in permutation:
-                    perm[key] = filled_combination[key]
-                combination = {**perm, **empty_combination}
-                yield combination
+                comb[key] = all_params[key]
+        yield comb
 
 
 if __name__ == "__main__":
