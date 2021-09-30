@@ -196,7 +196,7 @@ def get_best_models(verbose=False):
         with open(params_file_path, 'w') as file:
             json.dump(best_params, file)
 
-def evaluate_all_models(search_term='optimize',exclude=[]):
+def evaluate_all_models(search_term='optimize',exclude=[],with_params=False):
     report = []
     # load all models
     models = []
@@ -210,8 +210,11 @@ def evaluate_all_models(search_term='optimize',exclude=[]):
             df = prepare.load_prepared_file(filename=filename)
             _, X_val, _, _, y_val, _ = get_set_split(
                 df, target='price')
-            model_path = join(model_directory_path, f)
-            model = load(model_path)
+            if with_params:
+                model = build.load_model_with_params(model_name=f)
+            else:
+                model_path = join(model_directory_path, f)
+                model = load(model_path)
             y_pred, y_val, rmse = build.evaluate(model, X_val, y_val)
             report.append([brand.title(),
                            int(round(rmse, 0)),
