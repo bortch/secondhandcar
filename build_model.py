@@ -25,13 +25,7 @@ from bs_lib.bs_eda import get_categorical_columns
 from pandas.core.indexes import category
 import warnings
 warnings.filterwarnings('ignore')
-
-
-# Constant
-current_directory = "."
-dataset_directory = "dataset"
-model_directory_path = 'model/'
-
+import constants as cnst
 
 def get_transformer(verbose=False):
     if verbose:
@@ -161,7 +155,7 @@ def evaluate(model, X_val, y_val, verbose=False):
     return np.exp(y_pred), np.exp(y_val), rmse
 
 
-def evaluate_prediction(model, X_val, y_val, sample=None):
+def evaluate_prediction(model, X_val, y_val, sample=None,add_columns=[]):
     if sample:
         X_val = X_val.sample(n=sample, random_state=1)
         y_val = y_val.sample(n=sample, random_state=1)
@@ -175,6 +169,7 @@ def evaluate_prediction(model, X_val, y_val, sample=None):
 
     for i in range(len(y_pred)):
         row = []
+        sample = X_val[i:i+1]
         pred = y_pred[i:i+1][0]
         real = int(y_val[i:i+1].values[0])
         error = np.abs((real-pred))
@@ -183,11 +178,14 @@ def evaluate_prediction(model, X_val, y_val, sample=None):
         row.append(f"{real:.0f}")
         row.append(f"{error:.0f}")
         row.append(f"{percentage:.0f} %")
+        for col in add_columns:
+            value = sample[col].array[0]
+            row.append(f"{value}")
         data.append(row)
 
+    table_columns = ['Prediction', 'Real Price', 'Error', 'Percentage']+add_columns 
     table = terminal.create_table(title="Prediction results",
-                                  columns=['Prediction', 'Real Price',
-                                           'Error', 'Percentage'],
+                                  columns=table_columns,
                                   data=data)
     terminal.article(title="Model Prediction testing", content=table)
 
@@ -216,9 +214,9 @@ def check_integrity(matrix):
     return matrix  # data[~data.isin([np.nan, np.inf, -np.inf]).any(1)]
 
 
-def dump_model(model, as_filename, in_model_directory_path, verbose=False):
+def dump_model(model, as_filename, verbose=False):
     model_filename = f'{as_filename}.joblib'
-    dumped_model_path = join(in_model_directory_path, model_filename)
+    dumped_model_path = join(cnst.MODEL_DIR_PATH, model_filename)
     dump(model, dumped_model_path)
     if verbose:
         print(f"Model {as_filename} saved @ {dumped_model_path}")
@@ -255,7 +253,7 @@ def get_model(model_path_to_load=None, verbose=False, warm_start=False, transfor
         return pipeline
 
 
-def get_all_models(files_directory, target, dump_model=False, model_directory='', verbose=False):
+def get_all_base_models(files_directory, target, model_dump=False,verbose=False):
 
     all_df = load_all_csv(dataset_path=files_directory, index=0)
 
@@ -323,21 +321,21 @@ def get_all_models(files_directory, target, dump_model=False, model_directory=''
         print(f"\nTraining the model for {brand}")
         model.fit(X_train, y_train)
         model_path = '-'
-        # if dump_model:
+        # if model_dump:
         #     temp_model_name = f'temp_{brand}_model'
         #     temp_model_filename = f'{temp_model_name}.joblib'
-        #     temp_model_path = join(model_directory_path, temp_model_filename)
+        #     temp_model_path = join(cnst.MODEL_DIR_PATH, temp_model_filename)
         #     dump(model, temp_model_path)
         #     print(f"Model {brand}:\n")
 
         y_pred, y_val, rmse = evaluate(model, X_val, y_val)
 
-        if dump_model:
+        if model_dump:
             model_name = f'model_{brand}_{round(rmse,0)}'
             # model_filename = f'{model_name}.joblib'
-            # model_path = join(model_directory_path, model_filename)
+            # model_path = join(cnst.MODEL_DIR_PATH, model_filename)
             # rename(temp_model_path, model_path)
-            model_path = dump_model(model, model_name, model_directory_path)
+            model_path = dump_model(model, model_name)
 
         report.append([brand.title(),
                        int(round(rmse, 0)),
@@ -380,14 +378,9 @@ def get_all_categories(all_df):
     return results
 
 
-def get_one_model_for_all(model_to_dump=False, evaluation=False, verbose=False):
-    current_directory = "."
-    dataset_directory = "dataset"
-    files_directory = join(
-        current_directory, dataset_directory, 'prepared_data')
-    model_directory_path = 'model/'
-
-    all_df = load_all_csv(dataset_path=files_directory, index=0,exclude=["all_set.csv"])
+def get_one_model_for_all_iterative(model_to_dump=False, evaluation=False, verbose=False):
+    
+    all_df = load_all_csv(dataset_path=cnst.PREPARED_DATA_PATH, index=0,exclude=["all_set.csv"])
     categories = get_all_categories(all_df)
     report = []
 
@@ -475,7 +468,7 @@ def get_one_model_for_all(model_to_dump=False, evaluation=False, verbose=False):
 
     if model_to_dump:
         model_name = f'all_brand_model_{round(rmse,0)}'
-        model_path = dump_model(model, model_name, model_directory_path, verbose=False)
+        model_path = dump_model(model, model_name, verbose=False)
 
     report.append([f"Inc. Model",
                    int(round(rmse, 0)),
@@ -486,14 +479,21 @@ def get_one_model_for_all(model_to_dump=False, evaluation=False, verbose=False):
         print_performance(report)
 
 
-def load_model_with_params(model_name):
-    model_path = join(current_directory, model_directory_path,
-                      f"{model_name}.joblib")
+def load_model_with_params(model_filename,params_filename):
+    model_path = join(cnst.MODEL_DIR_PATH, model_filename)
     model = load(model_path)
-    params_path = join(current_directory,
-                       model_directory_path, f"{model_name}.json")
-    params = json.load(params_path)
-    return model.set_params(params)
+    params_path = join(cnst.MODEL_DIR_PATH, params_filename)
+    with open(params_path, 'r') as params_file:
+        params = json.load(params_file)
+    #print(params)
+    clean_params = {}
+    for key, param in params.items():
+        if isinstance(param,dict):
+            clean_params = {**clean_params,**param}
+        else:
+            clean_params[key]=param
+    #print(clean_params)
+    return model.set_params(**clean_params)
 
 
 if __name__ == "__main__":
@@ -501,18 +501,15 @@ if __name__ == "__main__":
 
     pd.options.mode.use_inf_as_na = True
 
-    files_directory = join(
-        current_directory, dataset_directory, 'prepared_data')
-
     # all_data_file = 'all_set.csv'
     # train_set_file = 'train_set.csv'
     # val_set_file = 'val_set.csv'
 
-    evaluations = get_all_models(
-        files_directory, target='price', verbose=False)
+    evaluations = get_all_base_models(
+        cnst.PREPARED_DATA_PATH, target='price', verbose=False)
     print_performance(evaluations)
 
-    # ofa_evaluations = get_one_model_for_all(
+    # ofa_evaluations = get_one_model_for_all_iterative(
     #     files_directory, target='price', verbose=False)
     # print_performance(ofa_evaluations)
 

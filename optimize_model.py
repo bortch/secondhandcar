@@ -6,10 +6,6 @@ from sklearn.metrics import make_scorer, mean_squared_error
 from itertools import combinations, product, permutations
 
 all_params = {
-    # 'random_forest': {'random_forest__max_depth': [40, 50, 100],
-    #                   'random_forest__min_samples_split': np.arange(2, 8, 2),
-    #                   'random_forest__max_features': ['auto', 'sqrt', 'log2', None],
-    #                   },
     'transformer__poly': {'transformer__poly__degree': [1, 2, 3],
                           'transformer__poly__interaction_only': [True, False],
                           'transformer__poly__include_bias': [True, False], },
@@ -27,6 +23,12 @@ all_params = {
                                'transformer__year_pipe__discretize__encode': ['onehot', 'ordinal'],
                                'transformer__year_pipe__discretize__strategy': ['uniform', 'quantile', 'kmeans']}}
 
+estimator_params = {
+    'random_forest': {'random_forest__max_depth': [40, 50, 100],
+                      'random_forest__min_samples_split': np.arange(2, 10, 2),
+                      'random_forest__max_features': ['auto', 'sqrt', 'log2', None],
+                      }
+}
 
 def get_best_estimator(model, param_grid, X, y, scoring, verbose=False):
     grid = GridSearchCV(model, param_grid=param_grid,
@@ -51,22 +53,6 @@ def get_best_params(model, param_grid, X, y, scoring, verbose=False):
     return grid.best_params_
 
 
-# def optimize(model, X_train, y_train):
-#     best_params = {}
-#     for key, param in all_params.items():
-#         if model.get_params()[key] == 'passthrough':
-#             best_params[key] = 'passthrough'
-#             #print(f"{key} skipped: 'passthrough'")
-#         else:
-#             #print(f'Optimizing {key}')
-#             # *** GridSearchCV ***#
-#             mse = make_scorer(mean_squared_error, greater_is_better=False)
-#             best_params[key] = get_best_params(
-#                 model, param, X_train, y_train, scoring=mse, verbose=False)
-#     print(best_params)
-#     return best_params
-
-
 def evaluate_combination(model, params, X_train, y_train, verbose=False):
     if verbose:
         print("\nEvaluate params combination")
@@ -82,7 +68,7 @@ def evaluate_combination(model, params, X_train, y_train, verbose=False):
             best_params[key] = 'passthrough'
         else:
             mse = make_scorer(mean_squared_error, greater_is_better=False)
-            grid = GridSearchCV(model_, param_grid=param,
+            grid = GridSearchCV(model, param_grid=param,
                                 cv=5, scoring=mse,
                                 verbose=verbose,
                                 n_jobs=-1,

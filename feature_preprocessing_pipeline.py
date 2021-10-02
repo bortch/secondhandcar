@@ -39,7 +39,7 @@ from bs_lib.bs_eda import get_numerical_columns, get_categorical_columns
 from bs_lib.bs_eda import train_val_test_split, split_by_row, load_csv_files_as_dict
 
 from joblib import dump, load
-
+import constants as cnst
 
 # TODO:
 # Preprocessing for All
@@ -203,8 +203,8 @@ def get_best_estimator(model, param_grid, X, y, scoring):
     return grid.best_estimator_
 
 
-def get_data(file_name, target_column, dataset_directory_path='./dataset/', sample=None, callback=None, prefix='saved', show=False):
-    data = load_data(file_name=file_name, dataset_directory_path=dataset_directory_path,
+def get_data(file_name, target_column, sample=None, callback=None, prefix='saved', show=False):
+    data = load_data(file_name=file_name,
                      callback=callback, prefix=prefix, show=show)
     if sample:
         data = data.sample(n=sample)
@@ -221,17 +221,17 @@ def get_features_target(data, target_name, show=False):
     return features, target
 
 
-def load_data(file_name, dataset_directory_path='./dataset/', callback=None, prefix='saved', show=False):
+def load_data(file_name, callback=None, prefix='saved', show=False):
     print(f'\nLoading {file_name} Dataset\n...')
     saved_file_name = f"{prefix}_{file_name}"
-    saved_file_path = join(dataset_directory_path, saved_file_name)
+    saved_file_path = join(cnst.DATASET_DIR_PATH, saved_file_name)
     if isfile(saved_file_path):
         data = pd.read_csv(saved_file_path, index_col=0)
         if show:
             print(
                 f"\t{file_name} was previously processed, {saved_file_name} reloaded")
     else:
-        file_path = join(dataset_directory_path, file_name)
+        file_path = join(cnst.DATASET_DIR_PATH, file_name)
         data = pd.read_csv(file_path, index_col=0)
         for c in callback:
             data = c(data)
@@ -383,17 +383,14 @@ if __name__ == "__main__":
     pd.options.mode.use_inf_as_na = True
     # print(sys.version_info)
 
-    dataset_directory_path = './dataset/'
-    model_directory_path = 'model/'
     all_data_file = 'all_set.csv'
     train_set_file = 'train_set.csv'
     val_set_file = 'val_set.csv'
-    prefix = 'prepared'
-    path_to_files = join(dataset_directory_path, prefix)
+    path_to_files = cnst.PREPARED_DATA_PATH
 
-    all_data = load_data(all_data_file, dataset_directory_path,
+    all_data = load_data(all_data_file,
                          callback=[clean_variables],
-                         prefix=prefix, show=True)
+                         prefix='prepared', show=True)
     # Drop all outliers
     all_data = drop_outliers(all_data)
 

@@ -12,16 +12,18 @@ import build_model as build
 import optimize_model as optimizer
 from joblib import load, dump
 
+import constants as cnst
+
 np.random.seed(1)
 
 verbose = False
 
-file_to_exclude = ['all_set.csv']
-current_directory = "."
-dataset_directory = "dataset"
+file_to_exclude = ['all_set.csv','all_brands.csv']
+# current_directory = "."
+# dataset_directory = "dataset"
 
-model_directory = "model"
-model_directory_path = join(current_directory, model_directory)
+# model_directory = "model"
+# cnst.MODEL_DIR_PATH = join(current_directory, model_directory)
 
 
 def get_model_params(categories):
@@ -71,9 +73,7 @@ def get_model_params(categories):
 
 
 def get_data():
-    prefix = 'file_processed'
-    file_directory = join(current_directory, dataset_directory, prefix)
-    all_df = load_all_csv(dataset_path=file_directory,
+    all_df = load_all_csv(dataset_path=cnst.FILE_PROCESSED_PATH,
                           exclude=file_to_exclude, verbose=False)
     return all_df
 
@@ -137,7 +137,7 @@ def get_model(evaluate=True):
         y_pred, y_val, rmse = build.evaluate(model, X_val, y_val)
 
         model_name = f'{brand}_model'
-        model_path = build.dump_model(model, model_name, model_directory_path)
+        model_path = build.dump_model(model, model_name, cnst.MODEL_DIR_PATH)
         if evaluate:
             report.append([brand.title(),
                            int(round(rmse, 0)),
@@ -162,7 +162,7 @@ def get_best_models(verbose=False):
 
         # load model
         model_name = f'model_{brand}.joblib'
-        model = load(join(model_directory_path, model_name))
+        model = load(join(cnst.MODEL_DIR_PATH, model_name))
 
         best_model = model
         best_params = {}
@@ -189,43 +189,159 @@ def get_best_models(verbose=False):
         print(f"{brand} - Best params", best_params)
         model_name = f'{brand}_optimized_rmse_{best_score:.0f}'
         model_path = build.dump_model(
-            best_model, model_name, model_directory_path)
+            best_model, model_name, cnst.MODEL_DIR_PATH)
         # if verbose:
         print(f'Best Model saved @ {model_path}')
-        params_file_path = join(model_directory_path,f"{model_name}.json")
+        params_file_path = join(cnst.MODEL_DIR_PATH, f"{model_name}.json")
         with open(params_file_path, 'w') as file:
             json.dump(best_params, file)
 
-def evaluate_all_models(search_term='optimize',exclude=[],with_params=False):
+
+def get_matching_files(in_directory_path, extension, search_term, exclude_term=[]):
+    files = {}
+    all_files_in_directory = listdir(in_directory_path) 
+    for filename in sorted(all_files_in_directory):
+        # fetch model filename
+        if (isfile(join(in_directory_path, filename))
+                and filename.endswith(extension)
+                and filename not in exclude_term
+                and not any(x in filename for x in exclude_term)
+                and search_term in filename):
+            file_name = filename.split('_')[0]
+            files[file_name] = filename
+    return files
+
+
+def evaluate_all_refitted_models(base_model_search_term, params_search_term, model_exclude=[], params_exclude=[], refit_times=1):
     report = []
-    # load all models
-    models = []
-    for f in listdir(model_directory_path):
-        if (isfile(join(model_directory_path, f))
-                and f.endswith('.joblib')
-                and f not in exclude
-                and search_term in f):
-            brand = f.split('_')[0]
-            filename = f"{brand}.csv"
-            df = prepare.load_prepared_file(filename=filename)
-            _, X_val, _, _, y_val, _ = get_set_split(
-                df, target='price')
-            if with_params:
-                model = build.load_model_with_params(model_name=f)
-            else:
-                model_path = join(model_directory_path, f)
-                model = load(model_path)
-            y_pred, y_val, rmse = build.evaluate(model, X_val, y_val)
-            report.append([brand.title(),
-                           int(round(rmse, 0)),
-                           int(round(y_val.mean(), 0)),
-                           int(round(y_pred.mean(), 0)),
-                           model_path])
+    models_files = {}
+    params_files = {}
+
+    models_files = get_matching_files(cnst.MODEL_DIR_PATH, extension='.joblib',
+                                      search_term=base_model_search_term, exclude_term=model_exclude)
+    params_files = get_matching_files(
+        cnst.MODEL_DIR_PATH, '.json', params_search_term, params_exclude)
+
+    for brand_name, model_filename in models_files.items():
+        #print(f"Refit {model_filename} using {brand_name}.csv with parameters from {params_files[brand_name]}")
+        # load dataset
+        df = prepare.load_prepared_file(filename=f"{brand_name}.csv")
+        X_train, X_val, _, y_train, y_val, _ = get_set_split(
+            df, target='price')
+        # load params
+        model = build.load_model_with_params(
+            model_filename=model_filename, params_filename=params_files[brand_name])
+        n_estimator = 500
+        if refit_times > 1:
+            model.set_params(**{"random_forest__warm_start": True})
+        # refit
+            for i in range(refit_times):
+                model.set_params(
+                    **{"random_forest__n_estimators": (i+1)*n_estimator})
+                model.fit(X_train, y_train)
+        else:
+            model.set_params(**{"random_forest__n_estimators": n_estimator})
+            model.fit(X_train, y_train)
+        # evaluate against Val Set
+        y_pred, y_val, rmse = build.evaluate(model, X_val, y_val)
+        report.append([brand_name.title(),
+                       int(round(rmse, 0)),
+                       int(round(y_val.mean(), 0)),
+                       int(round(y_pred.mean(), 0)),
+                       '-'])
     build.print_performance(report)
 
 
-if __name__ == "__main__":
+def evaluate_all_models(search_term, exclude=[]):
+    report = []
+    # fetch all models files
+    models_files = get_matching_files(
+        cnst.MODEL_DIR_PATH, extension='.joblib', search_term=search_term, exclude_term=exclude)
     
-    #get_model()
+    for brand_name, model_filename in models_files.items():
+        df = prepare.load_prepared_file(filename=f"{brand_name}.csv")
+        X_train, X_val, _, y_train, y_val, _ = get_set_split(
+            df, target='price')
+        model_path = join(cnst.MODEL_DIR_PATH, model_filename)
+        model = load(model_path)
+        y_pred, y_val, rmse = build.evaluate(model, X_val, y_val)
+        report.append([brand_name.title(),
+                       int(round(rmse, 0)),
+                       int(round(y_val.mean(), 0)),
+                       int(round(y_pred.mean(), 0)),
+                       model_filename.split('.')[0]])
+    build.print_performance(report)
+
+
+def get_best_estimators_params(search_term, exclude_term=[], verbose=False):
+
+    all_df = get_data()
+    models_files = get_matching_files(
+        cnst.MODEL_DIR_PATH, extension='.joblib', search_term=search_term, exclude_term=exclude_term)
+
+    for brand, dataframe in all_df.items():
+        # get data
+        filename = f"{brand}.csv"
+        df = get_prepared_data(dataframe, filename)
+
+        _, X_val, _, _, y_val, _ = get_set_split(df, target='price')
+
+        # load model
+        model_name = f'model_{brand}.joblib'
+        model = load(join(cnst.MODEL_DIR_PATH, models_files[brand]))
+
+        # get reference score
+        _, _, ref_score = build.evaluate(model, X_val, y_val, verbose=verbose)
+        
+        # Search for best params value
+        best_model, best_params, _ = optimizer.evaluate_combination(
+            model, optimizer.estimator_params, X_val, y_val, verbose=verbose)
+        
+        # Reevaluate with best_model
+        _, _, best_score = build.evaluate(best_model, X_val, y_val, verbose=verbose)
+        if(best_score<=ref_score):
+            if verbose:
+                print(f"\n{brand}")
+                print(f"-\t Reference score: {ref_score}")
+                print(f"-\t Best score: {best_score}")
+                print(f"-\t Best params: {best_params}")
+            model_name = f'{brand}_estimator_optimized_rmse_{best_score:.0f}'
+            model_path = build.dump_model(
+                best_model, model_name, cnst.MODEL_DIR_PATH)
+            
+            if verbose:
+                print(f'-\t Best Model saved @ {model_path}')
+            
+            # encode int64 to int
+            encoded_best_params={}
+            for key, p in best_params.items():
+                for k, value in p.items():
+                    print(f"{k}:{value}")
+                if isinstance(value,np.int64):
+                    encoded_best_params[key]=int(value)
+                elif isinstance(value,np.float64):
+                    encoded_best_params[key]=float(value)
+                else:
+                    encoded_best_params[key]=value
+
+            params_file_path = join(cnst.MODEL_DIR_PATH, f"{model_name}.json")
+            with open(params_file_path, 'w') as file:
+                json.dump(encoded_best_params, file)
+        else:
+            if verbose:
+                print(f"\n{brand}")
+                print(f"-\t Reference score: {ref_score}")
+                print(f"-\t Optimisation Estimator score: {best_score}")
+            model_name = f'{brand}_estimator_optimized_rmse_{ref_score:.0f}'
+            model_path = build.dump_model(
+                model, model_name, cnst.MODEL_DIR_PATH)
+            
+            if verbose:
+                print(f'-\t Model saved @ {model_path}')
+
+
+if __name__ == "__main__":
+
+    # get_model()
     get_best_models(verbose=False)
     # evaluate_all_models()
