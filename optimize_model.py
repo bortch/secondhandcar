@@ -4,6 +4,7 @@ from sklearn.metrics import make_scorer, mean_squared_error
 #from os.path import join, isfile
 #from os import listdir
 from itertools import combinations, product, permutations
+from sklearn.model_selection import StratifiedKFold
 
 all_params = {
     'transformer__poly': {'transformer__poly__degree': [1, 2, 3],
@@ -34,11 +35,20 @@ def get_best_estimator(model, param_grid, X, y, scoring, verbose=False):
     grid = GridSearchCV(model, param_grid=param_grid,
                         cv=5, scoring=scoring,
                         verbose=verbose,
-                        n_jobs=-1, pre_dispatch=1
+                        n_jobs=-1
                         )
     grid.fit(X, y)
     return grid.best_estimator_
 
+def get_grid_search_results(model, param_grid, X, y, scoring, verbose=False):
+    skf = StratifiedKFold(n_splits=5,random_state=1, shuffle=True)
+    grid = GridSearchCV(model, param_grid=param_grid,
+                        cv=skf, scoring=scoring,
+                        verbose=verbose,
+                        n_jobs=-1
+                        )
+    grid.fit(X, y)
+    return grid.best_estimator_, grid.best_params_, grid.best_score_
 
 def get_best_params(model, param_grid, X, y, scoring, verbose=False):
     grid = GridSearchCV(model, param_grid=param_grid,

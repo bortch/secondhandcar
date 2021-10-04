@@ -172,8 +172,8 @@ def evaluate_prediction(model, X_val, y_val, sample=None,add_columns=[]):
         sample = X_val[i:i+1]
         pred = y_pred[i:i+1][0]
         real = int(y_val[i:i+1].values[0])
-        error = np.abs((real-pred))
-        percentage = error/real*100
+        error = (real-pred)
+        percentage = (error/real)*100
         row.append(f"{pred:.0f}")
         row.append(f"{real:.0f}")
         row.append(f"{error:.0f}")
@@ -190,9 +190,11 @@ def evaluate_prediction(model, X_val, y_val, sample=None,add_columns=[]):
     terminal.article(title="Model Prediction testing", content=table)
 
 
-def print_performance(data):
+def print_performance(data, columns=[]):
+    if len(columns)==0:
+        columns=['Brand', 'RMSE', 'Target mean', 'Prediction mean', 'Model path']
     table = terminal.create_table(title="One model by Brand",
-                                  columns=['Brand', 'RMSE', 'Target mean', 'Prediction mean', 'Model path'], data=data)
+                                  columns=columns, data=data)
     terminal.article(title="Performance Comparison", content=table)
 
 
@@ -225,16 +227,16 @@ def dump_model(model, as_filename, verbose=False):
 
 def get_model(model_path_to_load=None, verbose=False, warm_start=False, transformers=None):
 
-    if transformers == None:
-        transformers_ = get_transformer(verbose=verbose)
-    else:
-        transformers_ = transformers
-
-    nb_estimators = 10
     if (model_path_to_load is not None) and isfile(model_path_to_load):
         model = load(model_path_to_load)
         return model
     else:
+        if transformers == None:
+            transformers_ = get_transformer(verbose=verbose)
+        else:
+            transformers_ = transformers
+
+        nb_estimators = 10
         steps = [
             ("features_extraction", FunctionTransformer(
                 extract_features, validate=False)),
@@ -469,15 +471,18 @@ def get_one_model_for_all_iterative(model_to_dump=False, evaluation=False, verbo
     if model_to_dump:
         model_name = f'all_brand_model_{round(rmse,0)}'
         model_path = dump_model(model, model_name, verbose=False)
-
+    
+    error = np.sqrt(np.square(y_val-y_pred))
+    score = model.score(all_X_val,all_y_val)
     report.append([f"Inc. Model",
-                   int(round(rmse, 0)),
-                   int(round(y_val.mean(), 0)),
-                   int(round(y_pred.mean(), 0)),
-                   model_path])
+                       int(round(rmse, 0)),
+                       score,
+                       int(round(error.mean(), 0)),
+                       model_name])
     if evaluation:
-        print_performance(report)
-
+        print_performance(report, ['Brand', 'RMSE', 'R2', 'Absolute Mean Error', 'Model path'])
+    
+    return model
 
 def load_model_with_params(model_filename,params_filename):
     model_path = join(cnst.MODEL_DIR_PATH, model_filename)

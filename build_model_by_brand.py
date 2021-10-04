@@ -244,12 +244,15 @@ def evaluate_all_refitted_models(base_model_search_term, params_search_term, mod
             model.fit(X_train, y_train)
         # evaluate against Val Set
         y_pred, y_val, rmse = build.evaluate(model, X_val, y_val)
+        error = np.sqrt(np.square(y_val-y_pred))
+        score = model.score(X_val,y_val)
         report.append([brand_name.title(),
                        int(round(rmse, 0)),
-                       int(round(y_val.mean(), 0)),
-                       int(round(y_pred.mean(), 0)),
-                       '-'])
-    build.print_performance(report)
+                       score,
+                       int(round(error.mean(), 0)),
+                       model_filename.split('.')[0]])
+    build.print_performance(report, ['Brand', 'RMSE', 'R2', 'Absolute Mean Error', 'Model path'])
+
 
 
 def evaluate_all_models(search_term, exclude=[]):
@@ -265,15 +268,17 @@ def evaluate_all_models(search_term, exclude=[]):
         model_path = join(cnst.MODEL_DIR_PATH, model_filename)
         model = load(model_path)
         y_pred, y_val, rmse = build.evaluate(model, X_val, y_val)
+        error = np.sqrt(np.square(y_val-y_pred))
+        score = model.score(X_val,y_val)
         report.append([brand_name.title(),
                        int(round(rmse, 0)),
-                       int(round(y_val.mean(), 0)),
-                       int(round(y_pred.mean(), 0)),
+                       score,
+                       int(round(error.mean(), 0)),
                        model_filename.split('.')[0]])
-    build.print_performance(report)
+    build.print_performance(report, ['Brand', 'RMSE', 'R2', 'Absolute Mean Error', 'Model path'])
 
 
-def get_best_estimators_params(search_term, exclude_term=[], verbose=False):
+def get_best_estimators_params(search_term, exclude_term=[], verbose=False, prefix=''):
 
     all_df = get_data()
     models_files = get_matching_files(
@@ -305,7 +310,9 @@ def get_best_estimators_params(search_term, exclude_term=[], verbose=False):
                 print(f"-\t Reference score: {ref_score}")
                 print(f"-\t Best score: {best_score}")
                 print(f"-\t Best params: {best_params}")
-            model_name = f'{brand}_estimator_optimized_rmse_{best_score:.0f}'
+            if len(prefix)>0:
+                prefix = f'{prefix}-'
+            model_name = f'{brand}_{prefix}estimator_{best_score:.0f}'
             model_path = build.dump_model(
                 best_model, model_name, cnst.MODEL_DIR_PATH)
             

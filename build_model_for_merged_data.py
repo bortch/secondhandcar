@@ -148,12 +148,16 @@ def evaluate_model(model_filename, data_filename, verbose=False):
     data = get_data(data_filename, verbose=verbose)
     _, X_val, _, _, y_val, _ = get_split_sets(data, verbose=verbose)
     y_pred, y_val, rmse = build.evaluate(model, X_val, y_val, verbose=verbose)
-
-    build.print_performance([[f"Merged Brand Dataset",
-                              int(round(rmse, 0)),
-                              int(round(y_val.mean(), 0)),
-                              int(round(y_pred.mean(), 0)),
-                              '-']])
+    error = np.sqrt(np.square(y_val-y_pred))
+    score = model.score(X_val,y_val)
+    model_name = model_filename.split('.')[0]
+    model_name = model_name[:20] + (model_name[20:] and '...')
+    report = [[f"Merged Brand Dataset",
+                       int(round(rmse, 0)),
+                       score,
+                       int(round(error.mean(), 0)),
+                       model_name]]
+    build.print_performance(report, ['Brand', 'RMSE', 'R2', 'Absolute Mean Error', 'Model path'])
 
 
 def get_best_estimator(model_filename, data_filename, verbose=False):
