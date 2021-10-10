@@ -5,7 +5,7 @@
   <element>
     <id>Text</id>
     <coordinates>
-      <x>110</x>
+      <x>120</x>
       <y>180</y>
       <w>80</w>
       <h>80</h>
@@ -36,7 +36,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>310</x>
+      <x>320</x>
       <y>510</y>
       <w>100</w>
       <h>40</h>
@@ -49,7 +49,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>200</x>
+      <x>210</x>
       <y>520</y>
       <w>130</w>
       <h>30</h>
@@ -60,7 +60,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>420</x>
+      <x>430</x>
       <y>740</y>
       <w>100</w>
       <h>40</h>
@@ -73,7 +73,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>400</x>
+      <x>410</x>
       <y>520</y>
       <w>420</w>
       <h>30</h>
@@ -84,7 +84,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>800</x>
+      <x>810</x>
       <y>510</y>
       <w>100</w>
       <h>40</h>
@@ -97,7 +97,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>110</x>
+      <x>120</x>
       <y>1020</y>
       <w>100</w>
       <h>40</h>
@@ -110,7 +110,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>650</x>
+      <x>660</x>
       <y>620</y>
       <w>240</w>
       <h>100</h>
@@ -127,7 +127,7 @@ bg=white</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>200</x>
+      <x>210</x>
       <y>630</y>
       <w>240</w>
       <h>30</h>
@@ -138,7 +138,7 @@ bg=white</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>420</x>
+      <x>430</x>
       <y>620</y>
       <w>100</w>
       <h>40</h>
@@ -151,7 +151,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>510</x>
+      <x>520</x>
       <y>620</y>
       <w>160</w>
       <h>40</h>
@@ -162,7 +162,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>540</x>
+      <x>550</x>
       <y>740</y>
       <w>100</w>
       <h>40</h>
@@ -175,7 +175,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>420</x>
+      <x>430</x>
       <y>800</y>
       <w>100</w>
       <h>40</h>
@@ -188,7 +188,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>800</x>
+      <x>810</x>
       <y>800</y>
       <w>100</w>
       <h>40</h>
@@ -201,7 +201,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>510</x>
+      <x>520</x>
       <y>810</y>
       <w>310</w>
       <h>30</h>
@@ -212,7 +212,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>580</x>
+      <x>590</x>
       <y>770</y>
       <w>240</w>
       <h>70</h>
@@ -223,7 +223,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>450</x>
+      <x>460</x>
       <y>680</y>
       <w>40</w>
       <h>40</h>
@@ -234,7 +234,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>460</x>
+      <x>470</x>
       <y>650</y>
       <w>30</w>
       <h>50</h>
@@ -245,7 +245,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>440</x>
+      <x>450</x>
       <y>440</y>
       <w>230</w>
       <h>80</h>
@@ -260,7 +260,7 @@ bg=white</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>360</x>
+      <x>370</x>
       <y>440</y>
       <w>100</w>
       <h>90</h>
@@ -271,7 +271,7 @@ bg=white</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>350</x>
+      <x>360</x>
       <y>660</y>
       <w>110</w>
       <h>70</h>
@@ -286,7 +286,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>480</x>
+      <x>490</x>
       <y>690</y>
       <w>130</w>
       <h>70</h>
@@ -297,7 +297,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>460</x>
+      <x>470</x>
       <y>710</y>
       <w>30</w>
       <h>50</h>
@@ -308,7 +308,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>460</x>
+      <x>470</x>
       <y>770</y>
       <w>30</w>
       <h>50</h>
@@ -319,7 +319,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>120</x>
+      <x>130</x>
       <y>740</y>
       <w>210</w>
       <h>70</h>
@@ -333,7 +333,7 @@ bg=white</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>320</x>
+      <x>330</x>
       <y>780</y>
       <w>120</w>
       <h>60</h>
@@ -344,7 +344,7 @@ bg=white</panel_attributes>
   <element>
     <id>UMLObject</id>
     <coordinates>
-      <x>100</x>
+      <x>110</x>
       <y>580</y>
       <w>810</w>
       <h>270</h>
@@ -361,7 +361,7 @@ transparency=0</panel_attributes>
   <element>
     <id>UMLObject</id>
     <coordinates>
-      <x>100</x>
+      <x>110</x>
       <y>410</y>
       <w>810</w>
       <h>150</h>
@@ -378,7 +378,7 @@ transparency=0</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>110</x>
+      <x>120</x>
       <y>510</y>
       <w>100</w>
       <h>40</h>
@@ -391,7 +391,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>230</x>
+      <x>240</x>
       <y>200</y>
       <w>100</w>
       <h>40</h>
@@ -404,7 +404,7 @@ fg=blue</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>370</x>
+      <x>380</x>
       <y>200</y>
       <w>100</w>
       <h>40</h>
@@ -417,7 +417,7 @@ fg=blue</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>110</x>
+      <x>120</x>
       <y>620</y>
       <w>100</w>
       <h>40</h>
@@ -430,7 +430,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>800</x>
+      <x>810</x>
       <y>1020</y>
       <w>100</w>
       <h>40</h>
@@ -444,7 +444,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>280</x>
+      <x>290</x>
       <y>1020</y>
       <w>100</w>
       <h>40</h>
@@ -457,7 +457,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>200</x>
+      <x>210</x>
       <y>1030</y>
       <w>100</w>
       <h>30</h>
@@ -468,7 +468,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>370</x>
+      <x>380</x>
       <y>1030</y>
       <w>110</w>
       <h>30</h>
@@ -479,7 +479,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>UMLObject</id>
     <coordinates>
-      <x>100</x>
+      <x>110</x>
       <y>870</y>
       <w>810</w>
       <h>270</h>
@@ -496,7 +496,7 @@ transparency=0</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>460</x>
+      <x>470</x>
       <y>1020</y>
       <w>100</w>
       <h>40</h>
@@ -509,7 +509,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>720</x>
+      <x>730</x>
       <y>1030</y>
       <w>100</w>
       <h>30</h>
@@ -520,7 +520,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>630</x>
+      <x>640</x>
       <y>1020</y>
       <w>100</w>
       <h>40</h>
@@ -533,7 +533,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>550</x>
+      <x>560</x>
       <y>1030</y>
       <w>100</w>
       <h>30</h>
@@ -544,7 +544,7 @@ bg=yellow</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>510</x>
+      <x>520</x>
       <y>200</y>
       <w>100</w>
       <h>40</h>
@@ -557,7 +557,7 @@ fg=blue</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>650</x>
+      <x>660</x>
       <y>200</y>
       <w>100</w>
       <h>40</h>
@@ -570,7 +570,7 @@ fg=blue</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>660</x>
+      <x>670</x>
       <y>40</y>
       <w>80</w>
       <h>60</h>
@@ -602,7 +602,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Text</id>
     <coordinates>
-      <x>660</x>
+      <x>670</x>
       <y>270</y>
       <w>80</w>
       <h>60</h>
@@ -633,7 +633,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>790</x>
+      <x>800</x>
       <y>200</y>
       <w>100</w>
       <h>40</h>
@@ -645,7 +645,7 @@ predict</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>730</x>
+      <x>740</x>
       <y>230</y>
       <w>130</w>
       <h>90</h>
@@ -656,7 +656,7 @@ predict</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>660</x>
+      <x>670</x>
       <y>110</y>
       <w>80</w>
       <h>60</h>
@@ -688,7 +688,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>550</x>
+      <x>560</x>
       <y>60</y>
       <w>130</w>
       <h>160</h>
@@ -699,7 +699,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>550</x>
+      <x>560</x>
       <y>130</y>
       <w>130</w>
       <h>90</h>
@@ -710,7 +710,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>550</x>
+      <x>560</x>
       <y>230</y>
       <w>130</w>
       <h>90</h>
@@ -721,7 +721,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>460</x>
+      <x>470</x>
       <y>210</y>
       <w>70</w>
       <h>30</h>
@@ -732,7 +732,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>320</x>
+      <x>330</x>
       <y>210</y>
       <w>70</w>
       <h>30</h>
@@ -743,7 +743,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>180</x>
+      <x>190</x>
       <y>210</y>
       <w>70</w>
       <h>30</h>
@@ -754,7 +754,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>690</x>
+      <x>700</x>
       <y>160</y>
       <w>30</w>
       <h>60</h>
@@ -765,7 +765,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>690</x>
+      <x>700</x>
       <y>60</y>
       <w>110</w>
       <h>160</h>
@@ -776,7 +776,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>UMLObject</id>
     <coordinates>
-      <x>100</x>
+      <x>110</x>
       <y>0</y>
       <w>810</w>
       <h>340</h>
@@ -793,7 +793,7 @@ transparency=0</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>500</x>
+      <x>510</x>
       <y>910</y>
       <w>190</w>
       <h>80</h>
@@ -808,7 +808,7 @@ bg=white</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>490</x>
+      <x>500</x>
       <y>980</y>
       <w>110</w>
       <h>60</h>
@@ -819,7 +819,7 @@ bg=white</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>350</x>
+      <x>360</x>
       <y>1080</y>
       <w>160</w>
       <h>40</h>
@@ -831,7 +831,7 @@ bg=white</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>320</x>
+      <x>330</x>
       <y>1050</y>
       <w>110</w>
       <h>50</h>
@@ -842,7 +842,7 @@ bg=white</panel_attributes>
   <element>
     <id>UMLObject</id>
     <coordinates>
-      <x>100</x>
+      <x>110</x>
       <y>1220</y>
       <w>810</w>
       <h>280</h>
@@ -859,7 +859,7 @@ transparency=0</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>620</x>
+      <x>630</x>
       <y>1350</y>
       <w>80</w>
       <h>40</h>
@@ -891,7 +891,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Text</id>
     <coordinates>
-      <x>620</x>
+      <x>630</x>
       <y>1260</y>
       <w>80</w>
       <h>60</h>
@@ -923,7 +923,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Text</id>
     <coordinates>
-      <x>430</x>
+      <x>440</x>
       <y>1430</y>
       <w>80</w>
       <h>40</h>
@@ -954,7 +954,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Text</id>
     <coordinates>
-      <x>270</x>
+      <x>280</x>
       <y>1340</y>
       <w>80</w>
       <h>100</h>
@@ -985,7 +985,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>Text</id>
     <coordinates>
-      <x>430</x>
+      <x>440</x>
       <y>1290</y>
       <w>80</w>
       <h>80</h>
@@ -1016,7 +1016,7 @@ drawArc(0,height*3/5,width,height*2/5,180,180,true) fg=black
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>110</x>
+      <x>120</x>
       <y>1370</y>
       <w>100</w>
       <h>40</h>
@@ -1029,7 +1029,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>800</x>
+      <x>810</x>
       <y>1270</y>
       <w>100</w>
       <h>40</h>
@@ -1042,7 +1042,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>800</x>
+      <x>810</x>
       <y>1350</y>
       <w>100</w>
       <h>40</h>
@@ -1055,7 +1055,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>800</x>
+      <x>810</x>
       <y>1430</y>
       <w>100</w>
       <h>40</h>
@@ -1068,7 +1068,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>340</x>
+      <x>350</x>
       <y>1320</y>
       <w>110</w>
       <h>90</h>
@@ -1080,7 +1080,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>340</x>
+      <x>350</x>
       <y>1380</y>
       <w>110</w>
       <h>90</h>
@@ -1092,7 +1092,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>500</x>
+      <x>510</x>
       <y>1280</y>
       <w>140</w>
       <h>70</h>
@@ -1104,7 +1104,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>500</x>
+      <x>510</x>
       <y>1320</y>
       <w>140</w>
       <h>70</h>
@@ -1116,7 +1116,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>690</x>
+      <x>700</x>
       <y>1270</y>
       <w>130</w>
       <h>40</h>
@@ -1128,7 +1128,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>690</x>
+      <x>700</x>
       <y>1350</y>
       <w>130</w>
       <h>40</h>
@@ -1140,7 +1140,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>500</x>
+      <x>510</x>
       <y>1430</y>
       <w>320</w>
       <h>40</h>
@@ -1152,7 +1152,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>200</x>
+      <x>210</x>
       <y>1380</y>
       <w>90</w>
       <h>30</h>
