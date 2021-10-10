@@ -1,0 +1,1 @@
+{"transformer__poly": "passthrough", "transformer__mpg_pipe": {"transformer__mpg_pipe__discretize__encode": "ordinal", "transformer__mpg_pipe__discretize__n_bins": 10, "transformer__mpg_pipe__discretize__strategy": "quantile"}, "transformer__tax_pipe": "passthrough", "transformer__engine_size_pipe": "passthrough", "transformer__year_pipe": "passthrough"}

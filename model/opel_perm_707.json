@@ -1,0 +1,1 @@
+{"transformer__poly__degree": 3, "transformer__poly__include_bias": false, "transformer__poly__interaction_only": false, "transformer__mpg_pipe__discretize__encode": "ordinal", "transformer__mpg_pipe__discretize__n_bins": 10, "transformer__mpg_pipe__discretize__strategy": "kmeans", "transformer__tax_pipe": "passthrough"}
