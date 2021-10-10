@@ -142,3 +142,6 @@ cython_debug/
 
 # csv
 *.csv
+
+# test file
+test.py
