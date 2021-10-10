@@ -1,8 +1,6 @@
 import numpy as np
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer, mean_squared_error
-#from os.path import join, isfile
-#from os import listdir
 from itertools import combinations, product, permutations
 from sklearn.model_selection import StratifiedKFold
 
@@ -28,6 +26,7 @@ estimator_params = {
     'random_forest': {'random_forest__max_depth': [40, 50, 100],
                       'random_forest__min_samples_split': np.arange(2, 10, 2),
                       'random_forest__max_features': ['auto', 'sqrt', 'log2', None],
+                      'random_forest__min_samples_leaf':np.arange(1,10,3),
                       }
 }
 
@@ -79,7 +78,7 @@ def evaluate_combination(model, params, X_train, y_train, verbose=False):
         else:
             mse = make_scorer(mean_squared_error, greater_is_better=False)
             grid = GridSearchCV(model, param_grid=param,
-                                cv=5, scoring=mse,
+                                cv=10, scoring=mse,
                                 verbose=verbose,
                                 n_jobs=-1,
                                 # pre_dispatch=1
@@ -174,32 +173,6 @@ def evaluate_combinations(model, params, X_train, y_train, verbose=False):
             best_score = combination_score
             best_params = combination_params
     return best_model, best_params, best_score
-
-
-# def get_permutation_of_combinations_of_params():
-#     nb_params = len(all_params)
-#     masks = product(range(2), repeat=nb_params)
-
-#     for mask in masks:
-#         empty_combination = {}
-#         filled_combination = {}
-#         # build a combination
-#         for index, key in enumerate(all_params):
-#             if mask[index] < 1:
-#                 empty_combination[key] = 'passthrough'
-#             else:
-#                 filled_combination[key] = all_params[key]
-#         # produce permutations
-#         if sum(list(mask)) == 0:
-#             # no permutation if only "passthrough"
-#             yield empty_combination
-#         else:
-#             for permutation in permutations(filled_combination):
-#                 perm = {}
-#                 for key in permutation:
-#                     perm[key] = filled_combination[key]
-#                 combination = {**perm, **empty_combination}
-#                 yield combination
 
 def get_combinations_of_params():
     nb_params = len(all_params)
